@@ -1,0 +1,240 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=11">
+    <script src="jquery/external/jquery/jquery.js"></script>
+    <script type="text/javascript" src="jquery/jquery-ui.js"></script>
+    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="styles/style_table.css" />
+    <link rel="stylesheet" href="styles/style.css" />
+    <link rel="stylesheet" href="styles/style_toolbar.css" />
+    <link rel="stylesheet" href="styles/style_fake_headers.css" />
+    <style>
+        
+        table { 	margin-top: 50px; 
+        /* Достаточно места для фиктивных заголовков */width: 100%; 	
+        min-width: 1200px;
+        overflow-x: auto;
+        margin-bottom: 20px; 	
+        border: 2px solid #dddddd; 
+        border-collapse: collapse; 
+        border-color: #000000;
+        box-sizing:  border-box;
+        table-layout: fixed;
+        }
+            
+        a, a:visited{
+        color: #0000EE;
+        }
+
+        
+        table th {	font-weight: bold;	padding: 5px;	background: #efefef;	border: 1px solid #dddddd;border-color: #000000}
+        table td {
+        border: 1px solid #dddddd;
+        padding: 5px;
+        border-color: #000000}
+        .editable {
+            background-color: #f9f9f9;
+        }
+        .edit-mode input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .data-table.disable {
+            pointer-events: none; /* Disable all mouse events */
+			cursor: not-allowed;
+            opacity: 0.7; /* Make the table more gray */
+        }
+		
+		.data-table.disable p.click_style{
+            pointer-events: auto; /* Disable all mouse events */
+            opacity: 1; /* Make the table more gray */
+			cursor: pointer;
+		}
+		
+        .hidden-row {
+            display: none;
+        }
+        .compressed {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bold-header {
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        
+    </style>
+    <script> 
+
+        var consoleNew = {
+                    log : function(args) {
+                                try {
+                                    theJavaFunctionDebugInEclipse('redirect > ' + args);
+                                } catch (_e) {
+                                    // document.getElementById("errblock").innerHTML = _e.message;
+                                    return;
+                                }
+                            },
+    
+                        error : function(args) {
+                            this.log(args);
+                        },
+    
+                        exception : function(args) {
+                            this.log(args);
+                        },
+    
+                        debug : function(args) {
+                            this.log(args);
+                        },
+    
+                        trace : function(args) {
+                            this.log(args);
+                        },
+    
+                        info : function(args) {
+                            this.log(args);
+                        }
+                    };
+    
+                    // window.addEventListener('error', function(e) {
+                    //     consoleNew.log(e.type + ':' + e.message + " : " + e.lineNumber);
+                    // });
+        </script>
+</head>
+<body>
+
+    <div id="contextMenu">
+        <div class="context-menu-item", uid="g7qFV71wh326oC", displayName="1.AC.24">
+            <img src="images/IRM8_docevidence.png">
+            <span class="context-menu-text">1.AC.24 Отчет по результатам ССЗИ по оценке взаимного влияния (ЭМС) бортового радиоэлектронного оборудования и систем самолета.</span>
+        </div>
+        <div class="context-menu-item", uid="wHgFV71wh326oC", displayName="1.AC.25">
+            <img src="images/IRM8_docevidence.png">
+            <span class="context-menu-text">1.AC.25 - 21-00-AC-1023-RPT - Отчет по результатам ССЗИ по демонстрации аварийной эвакуации на земле пассажиров и членов экипажа.</span>
+        </div>
+        <div class="context-menu-item", uid="RcgFV71wh326oC", displayName="1.AC.42">
+            <img src="images/IRM8_docevidence.png">
+            <span class="context-menu-text">1.AC.42 - 21-00-AC-1037-RPT - Отчет по результатам СЗИ самолета МС-21-300 в части оценки ПНО</span>
+        </div>
+        <div class="context-menu-item", uid="x8mFV71wh326oC", displayName="1.0C.9">
+            <img src="images/IRM8_docevidence.png">
+            <span class="context-menu-text">1.0C.9 - 21-00-0C-0006-RPF - Заключение о соответствии типовой конструкции самолета МС?21?300 требованиям п.25.603 Сертификационного базиса</span>
+        </div>
+    </div>
+    <div id = "toolbar" role="toolbar" class="toolbar">
+        <div class="text-group">
+            <div style="margin-left: 12; margin-right: 0;">БЛГ:</div>
+            <div id="awb-name-box-id" class="awb-name-box  notexist" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">БЛГ</div>
+            <div >связано с ТС:</div>
+            <div  class="tc-name-box notexist" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" id="tc-name-box-id">Таблица соответствия:</div>
+        </div>
+        <div class="btn-group" role="group">
+            <button disabled class="button-toolbar" id="preview-btn" type="button" title="Предпросмотр" style="margin-right: 5px; width: auto; padding-left: 4px; padding-right: 4px;">
+                <img src="images/hidden.png" id="hidden-icon" type='icon 'class="icon icon-preview" style="display: none;">
+                <img src="images/preview.png" id="preview-icon" type="icon" class="icon icon-preview" >    
+            </button>
+            <button disabled class="button-toolbar" id="edit-btn" type="button">Редактировать</button>
+            <button disabled title="Отменить изменения" class="button-toolbar exit" id="exit-btn" type="button">Отмена</button>
+        </div>
+    </div>
+
+    <div id="par-introduction" style="margin-top: 50px;"><p style="font-size: 16px; margin-top: 15px; margin-left: 15px; ">Выберите требования БЛГ в структуре элемента АСУСД.</p></div>
+
+    <div id="table-container" class="table-responsive table-container">
+        <div class="fake-headers">
+
+            <div class="fake-header" style="width: 10%; min-width: 100px;">
+                <div class="rectangle-fake">Требование</div>
+            </div>
+            <div class="fake-header" style="width: 26%; min-width: 260px;">
+                <div class="rectangle-fake">Текст требования</div>
+            </div>
+            <div class="fake-header" style="width: 10%; ">
+                <div class="rectangle-fake">Код МОС</div>
+            </div>
+            <div class="fake-header" style="width: 10%;">
+                <div class="rectangle-fake">МОС</div>
+            </div>
+            <div class="fake-header" style="width: 12%;">
+                <div class="rectangle-fake">Получение материалов</div>
+            </div>
+            <div class="fake-header" style="width: 12%;">
+                <div class="rectangle-fake">Подтвержение соответствия</div>
+            </div>
+            <div class="fake-header" style="width: 10%;">
+                <div class="rectangle-fake">Программа испытаний</div>
+            </div>
+            <div class="fake-header" style="width: 10%;">
+                <div class="rectangle-fake">Стенд</div>
+            </div>
+    
+        </div>
+    </div>
+    
+
+    <script src="dist/core/controller.js"></script>
+    <script src="dist/core/HandlerTeamcenter.js"></script>
+    <script src="dist/data/handlerdata.js"></script>
+    <script src="dist/view/table.js"></script>
+    <script src="dist/data/TrackedObject.js"></script>
+    <script src="dist/view/TableObjectsCell.js"></script>
+    <script src="dist/view/CodeCell.js"></script>
+    <script src="dist/view/ProgramCell.js"></script>
+    <script src="dist/view/MOCCell.js"></script>
+    <script src="dist/view/TocLine.js"></script>
+    <script src="dist/view/DocCell.js"></script>
+    <script src="dist/view/DocCellCorrespondence.js"></script>
+    <script src="dist/view/StandCell.js"></script>
+    <script src="dist/view/Toolbar.js"></script>
+    <script src="dist/view/FakeHeaders.js"></script>
+    <script src="dist/view/RequirementCell.js"></script>
+    <!-- <input type="file" id="fileInput" onchange="readFile()"> -->
+
+    <!-- <dialog open>
+        <p>Greetings, one and all!</p>
+        <button>Ok</button><button>Maybe</button><button>Cancel</button>
+      </dialog> -->
+
+    <script>
+        // function readFile() {
+        //     var fileInput = document.getElementById('fileInput');
+        //     var file = fileInput.files[0];
+
+        //     if (file) {
+        //         var reader = new FileReader();
+        //         reader.onload = function(e) {
+        //             var controller = new Controller();
+        //             updateTable(e.target.result);
+        //         };
+        //         reader.readAsText(file);
+        //     }
+        // }
+        var controller = new Controller();
+        var editBtn = document.getElementById('edit-btn');
+
+        var icon = document.createElement('span');
+        icon.className = 'icon';
+        editBtn.classList.add('edit');
+        editBtn.insertBefore(icon, editBtn.firstChild);
+
+        
+        function updateTable(jsonStr){
+            var introPar = document.getElementById("par-introduction");
+            if(introPar)
+                introPar.parentNode.removeChild(introPar);
+            controller.updateDataReq(jsonStr);
+            editBtn.disabled = false;
+            var exitBtn = document.getElementById('exit-btn');
+            exitBtn.disabled = false;
+        }
+        initFakeHeaders();
+    </script>
+</body>
+</html>

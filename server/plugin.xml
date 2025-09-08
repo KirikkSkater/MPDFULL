@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+    <extension
+          point="com.teamcenter.rac.util.tc_properties">
+    </extension>
+    
+   <extension point="com.teamcenter.rac.aifrcp.application">
+      <aif_app_item
+            class="com.irkut.tc.mpdeditor.MPDEApplication"
+            displayMode="Primary"
+            groupName="Teamcenter"
+            icon="icons/sample.png"
+            id="com.irkut.tc.mpdeditorapplication.MPDEditor"
+            name="%mpdEditor.TITLE"
+            ordinality="200"
+            perspective_id="com.irkut.tc.mpdeditor.MPDEditor"
+            session="com.teamcenter.rac.kernel.TCSession"
+            tooltip="%mpdEditor.TIP"/>
+   </extension>
+ 
+   <extension point="org.eclipse.ui.views">
+		<view allowMultiple="false" 
+			category="com.teamcenter.rac.aifrcp.applicationCategory"
+			class="com.irkut.tc.mpdeditor.views.MPDETableView"
+			id="com.irkut.tc.mpdeditor.views.MPDETableView"
+			name="%mpdeList.TITLE"
+			icon="icons/sample.png"/>         
+		
+		<view allowMultiple="false" 
+			category="com.teamcenter.rac.aifrcp.applicationCategory"
+			class="com.irkut.tc.mpdeditor.views.MPDEDetailView"
+			id="com.irkut.tc.mpdeditor.views.MPDEDetailView"
+			icon="icons/sample.png" 
+            name="%mpdeDetailView.TITLE"/> 
+
+   </extension>
+	
+   <extension point="org.eclipse.ui.perspectives">
+		<perspective class="com.teamcenter.rac.aifrcp.perspective.GenericRACPerspective"
+			id="com.irkut.tc.mpdeditor.MPDEPerspective"
+			icon="icons/sample.png"
+            name="%mpdEditor.TITLE"/>
+   </extension>   
+
+   <extension point="org.eclipse.ui.perspectiveExtensions">
+		<perspectiveExtension targetID="com.irkut.tc.mpdeapplication.MPDEPerspective">
+  			<perspectiveShortcut id="com.irkut.tc.mpdeapplication.MPDEPerspective"/>
+  			<view id="com.irkut.tc.mpdeditor.views.MPDETableView" 
+                relationship="left"
+                ratio="0.33"
+                minimized="false" 
+                visible="true" 
+                relative="PrimaryFolder"/>
+                
+  			<view id="com.irkut.tc.mpdeditor.views.MPDEDetailView"
+  			 relationship="right"
+  			 relative="com.irkut.tc.mpdeditor.views.MPDETableView"
+  			 minimized="false" 
+             visible="true"
+  			 ratio="0.67"/>
+  			 
+ 
+		</perspectiveExtension>
+		
+		<perspectiveExtension targetID="*">
+  			<perspectiveShortcut id="com.irkut.tc.mpdeapplication.MPDEPerspective"/>
+  		</perspectiveExtension>	
+	</extension>	
+	
+    <extension
+          point="com.teamcenter.rac.aifrcp.viewDefs">
+       <view
+             alwaysUseSetRootInputObject="true"
+             autoCloseEnabled="true"
+             folderId="RAC_Folder_UL"
+             id="com.irkut.tc.mpdeditor.views.MPDEDetailView"
+             selectionInPrimaryEffectsInvisbleSecondary="false"
+             selectionInSecondaryEffectsPrimary="true"
+             type="primary">
+       </view>
+    </extension>
+    
+    <extension point="com.teamcenter.rac.aifrcp.perspectiveDefs">
+       <perspective
+             displayMode="Tertiary"
+             icon16="icons/sample.png"
+             icon24="icons/sample.png"
+             icon32="icons/sample.png"
+             id="com.irkut.tc.mpdeditor.MPDEPerspective"
+             isLegacyAppDefault="true"
+             label="%mpdEditor.TITLE"
+             legacyAppId="com.irkut.tc.mpdeapplication.MPDEApplication"
+             ordinality="200"
+             tooltip="%mpdeApplication.TIP">
+          <contextRef
+                id="com.irkut.tc.mpdeapplication.MPDEContext">
+          </contextRef>
+          <viewRef id="com.irkut.tc.mpdeditor.views.MPDEDetailView"> </viewRef>
+       </perspective>
+    </extension>
+ 
+    <extension
+          point="org.eclipse.ui.contexts">
+       <context
+             description="%mpdeApplication.TITLE"
+             id="com.irkut.tc.mpdeapplication.MPDEContext"
+             name="%mpdeApplication.TITLE"
+             parentId="com.teamcenter.rac.common.TeamcenterContext">
+       </context>
+    </extension>	
+	
+    <!--extension point="org.eclipse.core.expressions.definitions">
+        <definition id="com.irkut.tc.irmapplication.inMainView">
+            <and>
+                <or>
+                    <with variable="activePartId">
+                        <equals value="com.irkut.tc.irmapplication.IRMView" />
+                    </with>
+                    <with variable="rac_property.ACTIVE_APPLICATION">
+                        <equals value="com.irkut.tc.irmapplication.IRMApplication" />
+                    </with>
+                </or>
+            </and>
+        </definition>
+   </extension-->	
+   
+   <extension point="org.eclipse.ui.commands">
+        <command id="com.irkut.tc.mpdeapplication.sendto"
+            name="%mpdeApplication.TITLE"/>  
+            
+        <command id="com.irkut.tc.mpdeapplication.startserver"
+            name="start server"/>  
+   </extension>	
+
+<!-- COMMANDS -->
+
+   
+   
+   <extension	point="org.eclipse.ui.handlers">
+   
+      <!--handler	commandId="com.irkut.tc.irm.create.CBReq"		class="com.irkut.tc.irm.handlers.CreateHandler">
+      		<enabledWhen>
+                   <with variable="activePartId">
+                	<equals 
+                    	value="com.irkut.tc.irmapplication.IRMView"/>
+            		</with>  	
+      		</enabledWhen>
+      </handler-->
+      
+      
+      <handler	commandId="com.irkut.tc.mpdeapplication.startserver"		class="com.irkut.tc.mpdeditor.handlers.HandlerStartServer">
+      		
+      </handler>
+      
+   </extension>                                  
+
+   <extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:org.eclipse.ui.main.menu?after=tools">
+		<command commandId="com.irkut.tc.mpdeapplication.startserver">
+            </command>
+     </menuContribution>
+   
+   </extension>  
+      
+
+   <extension
+         point="org.eclipse.ui.menus">
+         
+            <menuContribution locationURI="menu:tools">   
+             
+      		</menuContribution>
+      
+
+      
+   </extension>
+   <!--
+   <extension point="org.eclipse.ui.activities">
+    <activity
+          description="Turn off original commands"
+          id="com.teamcenter.rac.requirementsmanager.RequirementsManagerApplication"
+          name="RMConfiguration">
+		<enabledWhen>
+			<not>
+				<reference definitionId="com.teamcenter.rac.requirementsmanager.inMainView"/>
+			</not>
+     	</enabledWhen>
+    </activity>
+    <activityPatternBinding
+           activityId="com.teamcenter.rac.requirementsmanager.RequirementsManagerApplication"
+           pattern="com.teamcenter.rac.requirementsmanager.*">
+    </activityPatternBinding>
+    <activityPatternBinding
+           activityId="com.teamcenter.rac.requirementsmanager.RequirementsManagerApplication"
+           isEqualityPattern="true"
+           pattern="com.teamcenter.rac.common/file.newl">
+    </activityPatternBinding>
+  </extension>
+  -->
+  
+  
+ 
+	
+   
+	
+          
+                        
+	
+   
+  
+</plugin>

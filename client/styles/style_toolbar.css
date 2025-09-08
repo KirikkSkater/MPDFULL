@@ -1,0 +1,150 @@
+.toolbar {
+    display: flex;
+    justify-content: space-between; /* Распределение элементов по краям */
+    align-items: center;            /* Вертикальное выравнивание элементов */
+    margin-right: 10px;
+    position: fixed;
+    width: 100%;
+    z-index: 1;
+    margin-right: 20px;
+    top: 0;
+    background-color: rgba(224, 224, 224, .7);
+}
+
+.toolbar .btn-group {
+    display: flex;
+    margin-left: 10px;
+    margin-right: 22px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.text-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    max-width: 60%; 
+    margin-left: 10px;
+}
+
+*:disabled {
+    opacity: 0.5; /* example: reduce opacity to indicate disabled state */
+    cursor: not-allowed;
+}
+
+.awb-name-box {
+    /* flex-grow: 1; */
+    margin-left: 10px;
+    margin-right: 10px;
+    background-color: #d4b46d; /* Light blue background */
+    color: #b26531;            /* Dark teal text color */
+    padding: 3px 7px;        /* Padding inside the box */
+    border: 2px solid #9e6515; /* Border matching the text color */
+    border-radius: 3px;        /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */          /* Maximum width of the box */
+    text-align: center;        /* Center align text */
+    font-size: 16px;           /* Font size */
+}
+
+
+.tc-name-box {
+    /* flex-grow: 1; */
+    margin-left: 10px;
+    background-color: #6db3d4; /* Light blue background */
+    color: #3178b2;            /* Dark teal text color */
+    padding: 3px 7px;        /* Padding inside the box */
+    border: 2px solid #156c9e; /* Border matching the text color */
+    border-radius: 3px;        /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(135, 26, 26, 0.1); /* Subtle shadow */
+             /* Maximum width of the box */
+    text-align: center;        /* Center align text */
+    font-size: 16px;           /* Font size */
+}
+
+.tc-name-box.notexist{
+    color: #5a5a60;
+    background-color: #adadad;
+}
+
+.awb-name-box.notexist{
+    color: #5a5a60;
+    background-color: #adadad;
+}
+
+
+.button-toolbar {
+    padding: 5px 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+    width: 180px;
+    background-color: #2e7fd6; 
+}
+
+.button-toolbar.exit{
+    width: auto;
+    margin-left: 5px;
+}
+
+.button-toolbar.edit {
+         background-color: #007bff; 
+        
+}  
+
+.button-toolbar.save {
+    background-color: #28a745; 
+} 
+    
+    
+.button-toolbar .icon { 
+    margin-right: 10px; 
+}  
+
+.button-toolbar.edit .icon::before {     
+    content: '\270E'; /* Pencil icon for Edit */ 
+}  
+    
+    
+.button-toolbar.save .icon::before {
+         content: '\2714'; /* Checkmark icon for Save */ 
+}
+
+.add-btn{
+    margin-left: 10px;
+    width: auto;
+    /* font-size: 14px; */
+    /* position: relative; */
+    /* display: flex;
+    justify-content: center;
+    align-items: center; */
+    /* color: transparent; */
+    /* outline: none; */
+    /* transition: background-color 0.3s, border-color 0.3s; */
+}
+
+
+p.click_style{
+    cursor: pointer;
+    font: underline;
+    color: #2e7fd6;
+
+    text-decoration: underline;
+}
+
+.icon.icon-preview{
+    width: 25px;
+    height: 25px;
+    margin-right: 0px;
+    /* object-fit: cover;
+    position: absolute;
+    margin: auto; */
+    /* transform: translate(-3px, -9px); */
+}

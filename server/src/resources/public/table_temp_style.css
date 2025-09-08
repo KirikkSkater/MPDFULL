@@ -1,0 +1,146 @@
+/* Базовые стили таблицы */
+table {
+    width: 100%;
+    table-layout: fixed; /* Фиксированная ширина колонок */
+    border-collapse: collapse;
+}
+
+table.disable {
+            pointer-events: none; /* Disable all mouse events */
+			cursor: not-allowed;
+            opacity: 0.7; /* Make the table more gray */
+}
+
+/* Базовые стили для всех заголовков */
+.table>thead>tr>th {
+    font-weight: bold;
+    background: #efefef;
+    /* border: 1px solid #000; */
+    position: relative;
+    text-align: center;
+    vertical-align: middle;
+    /* padding: 12px 8px; Увеличили отступы */
+}
+
+.task-group-subtitle {
+  font-weight: bold;
+  background: #f0f0f0;
+}
+.text-left {
+  text-align: left;
+}
+
+/* table th {
+    padding: var(--header-padding);
+} */
+
+/* Специальные стили для повернутых заголовков */
+.rotated-header {
+      position: relative;
+    height: 160px;
+    min-width: 40px; /* Увеличили минимальную ширину */
+    /* padding: 15px 5px; Больше отступов */
+    vertical-align: middle;
+    align-content: center;
+    
+  box-sizing: border-box; /* Учитываем границы в размерах */
+}
+
+.rotated-content {
+    transform: rotate(-90deg);
+    transform-origin: center center;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: wrap;
+    position: relative;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    /* border: #f30f0f; */
+    /* width: 150px;  */
+    /* border-width: 1; */
+    /* border-style: solid; */
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: ellipsis;
+    text-overflow: ellipsis;
+} 
+
+
+/* Стили для обычных заголовков */
+.normal-header {
+    padding: 15px 10px; /* Увеличили отступы */
+    min-width: 100px;
+    vertical-align: middle;
+}
+
+/* Стили для тонких заголовков */
+.thin-header {
+    padding: 8px 5px; /* Сохранили меньшие отступы */
+    height: 30px;
+    
+}
+
+:root {
+    --header-padding: 12px 8px;
+    --rotated-padding: 15px 5px;
+}
+
+
+
+.normal-content {
+    /* display: flex; */
+    align-items: center;
+    justify-content: center;
+    word-break: break-word;
+    height: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: ellipsis;
+    text-overflow: ellipsis;
+    white-space: wrap;
+    /* text-align: center; */
+}
+
+.thin-content {
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+
+/* Альтернативный вариант с переносами */
+.rotated-header.alt .rotated-content {
+    transform: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    white-space: normal;
+    left: auto;
+    margin-left: 0;
+    padding: 5px 0;
+}
+
+
+/* Стили для кнопок */
+
+.add-button-row{
+    color: black;
+    background-color: #9bebad;
+    border-radius: 5px;
+    border-width: 0px;
+    padding: 1px 6px; /* Отступы: 2 пикселя сверху и снизу, 4 пикселя слева и справа */
+    font-size: 20px;  /* Размер шрифта */
+    line-height: 1;   /* Высота строки */
+    margin-left: 4px;
+    margin-right: 4px;
+    /* margin-left: 5px; */
+}
+
+.edit-mode-btn{
+    display: none;
+}

@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE dmodule [
+]>
+<dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-1/xml_schema_flat/schedul.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+	<content>
+		<referencedApplicGroup>
+			<applic id="app-00">
+				<displayText>
+					<simplePara>ПОСЛЕ ДОРАБОТКИД</simplePara>
+				</displayText>
+				<assert applicPropertyIdent="serialno" applicPropertyType="prodattr" applicPropertyValues="95007~985031|958033~95074"/>
+			</applic>
+			<applic id="app-07">
+				<assert applicPropertyIdent="serialno" applicPropertyType="prodattr" applicPropertyValues="951380~959099"/>
+			</applic>
+			<applic id="app-01">
+				<displayText>
+					<simplePara>БЕЗ УСТАНОВЛЕННОЙ ОПЦИИ </simplePara>
+				</displayText>
+			</applic>
+			<applic id="app-02">
+				<displayText>
+					<simplePara>C УСТАНОВЛЕННОЙ ОПЦИЕЙ </simplePara>
+				</displayText>
+			</applic>
+			<applic id="app-03">
+				<assert applicPropertyIdent="serialno" applicPropertyType="prodattr" applicPropertyValues="950007~950177"/>
+			</applic>
+			<applic id="app-04">
+				<assert applicPropertyIdent="serialno" applicPropertyType="prodattr" applicPropertyValues="95178~95999"/>
+			</applic>
+			<applic id="app-05">
+				<displayText>
+					<simplePara>ДЛЯ ВС БЕЗ ОПЦИИ</simplePara>
+				</displayText>
+			</applic>
+			<applic id="app-06">
+				<displayText>
+					<simplePara>ДЛЯ ВС С ОПЦИЕЙ</simplePara>
+				</displayText>
+			</applic>
+		</referencedApplicGroup>
+		<maintPlanning>
+			<commonInfo>
+				<title>СИСТЕМА КОНДИЦИОНИРОВАНИЯ ВОЗДУХА</title>
+				<para/>
+			</commonInfo>
+			<taskDefinitionAlts>
+				<taskDefinition applicRefId="app-00" taskIdent="2122000MT-07" taskCode="taskcd09">
+					<task>
+						<taskTitle>СИСТЕМА ВЕНТИЛЯЦИИ БЛОКОВ АВИОНИКИ</taskTitle>
+						<taskDescr>
+							<simplePara> ОТКАЗОВ НАГНЕТАЮЩЕГО ВЕНТИЛЯТОРА</simplePara>
+						</taskDescr>
+					</task>
+					<rqmtSource sourceOfRqmt="MR FEC 9">
+						<externalPubRef>
+							<externalPubRefIdent>
+								<externalPubTitle>MR FEC 8</externalPubTitle>
+							</externalPubRefIdent>
+						</externalPubRef>
+					</rqmtSource>
+					<preliminaryRqmts>
+						<productionMaintData>
+							<workAreaLocationGroup>
+								<zoneRef zoneNumber="29"/>
+							</workAreaLocationGroup>
+						</productionMaintData>
+						<productionMaintData>
+							<workAreaLocationGroup>
+								<accessPointRef accessPointNumber="89"/>
+							</workAreaLocationGroup>
+							<taskDuration startupDuration="0.01" unitOfMeasure="ч/час" procedureDuration="0.11" closeupDuration="0"/>
+						</productionMaintData>
+						<reqCondGroup>
+							<reqCondNoRef>
+								<reqCond reqCondCategory="rcc01"/>
+							</reqCondNoRef>
+						</reqCondGroup>
+						<reqPersons applicRefId="app-01">
+							<personnel numRequired="1">
+								<personCategory personCategoryCode="AF"/>
+							</personnel>
+						</reqPersons>
+						<reqTechInfoGroup>
+							<reqTechInfo>
+								<dmRef applicRefId="app-01">
+									<dmRefIdent>
+										<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="111" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="0" subSystemCode="0" systemCode="11" systemDiffCode="A" modelIdentCode="LLM"/>
+									</dmRefIdent>
+								</dmRef>
+							</reqTechInfo>
+						</reqTechInfoGroup>
+						<reqSupportEquips>
+							<noSupportEquips/>
+						</reqSupportEquips>
+						<reqSupplies>
+							<noSupplies/>
+						</reqSupplies>
+						<reqSpares>
+							<noSpares/>
+						</reqSpares>
+						<reqSafety>
+							<noSafety/>
+						</reqSafety>
+					</preliminaryRqmts>
+					<refs>
+						<dmRef>
+							<dmRefIdent>
+								<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="111" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="0" subSystemCode="0" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+							</dmRefIdent>
+						</dmRef>
+					</refs>
+					<limit limitTypeValue="oc" limitCond="B">
+						<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+					</limit>
+					<limit limitTypeValue="oc" limitCond="L">
+						<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+							<thresholdValue>11</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+							<thresholdValue>1</thresholdValue>
+						</threshold>
+					</limit>
+				</taskDefinition>
+				<taskDefinition applicRefId="app-07" taskIdent="210000MT-07" taskCode="taskcd09">
+					<task>
+						<taskTitle>СИСТЕМА ВЕНТИЛЯЦИИ БЛОКОВ АВИОНИКИ</taskTitle>
+						<taskDescr>
+							<simplePara>ВИЗУАЛЬНЫЙ КОНТРОЛЬ</simplePara>
+						</taskDescr>
+					</task>
+					<rqmtSource sourceOfRqmt="M1R FEC 9">
+						<externalPubRef>
+							<externalPubRefIdent>
+								<externalPubTitle>MR FEC 8</externalPubTitle>
+							</externalPubRefIdent>
+						</externalPubRef>
+					</rqmtSource>
+					<preliminaryRqmts>
+						<productionMaintData>
+							<workAreaLocationGroup>
+								<zoneRef zoneNumber="211"/>
+							</workAreaLocationGroup>
+						</productionMaintData>
+						<productionMaintData>
+							<workAreaLocationGroup>
+								<accessPointRef accessPointNumber="231"/>
+							</workAreaLocationGroup>
+							<taskDuration startupDuration="0.11" unitOfMeasure="ч/час" procedureDuration="0.27" closeupDuration="0"/>
+						</productionMaintData>
+						<reqCondGroup>
+							<reqCondNoRef>
+								<reqCond reqCondCategory="rcc01"/>
+							</reqCondNoRef>
+						</reqCondGroup>
+						<reqPersons applicRefId="app-01">
+							<personnel numRequired="1">
+								<personCategory personCategoryCode="AF"/>
+							</personnel>
+						</reqPersons>
+						<reqTechInfoGroup>
+							<reqTechInfo>
+								<dmRef applicRefId="app-01">
+									<dmRefIdent>
+										<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="333" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="0" subSystemCode="0" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+									</dmRefIdent>
+								</dmRef>
+							</reqTechInfo>
+						</reqTechInfoGroup>
+						<reqSupportEquips>
+							<noSupportEquips/>
+						</reqSupportEquips>
+						<reqSupplies>
+							<noSupplies/>
+						</reqSupplies>
+						<reqSpares>
+							<noSpares/>
+						</reqSpares>
+						<reqSafety>
+							<noSafety/>
+						</reqSafety>
+					</preliminaryRqmts>
+					<refs>
+						<dmRef>
+							<dmRefIdent>
+								<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="333" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="0" subSystemCode="0" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+							</dmRefIdent>
+						</dmRef>
+					</refs>
+					<limit limitTypeValue="oc" limitCond="B">
+						<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+					</limit>
+					<limit limitTypeValue="oc" limitCond="L">
+						<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+							<thresholdValue>111</thresholdValue>
+						</threshold>
+						<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+							<thresholdValue>1</thresholdValue>
+						</threshold>
+						<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+							<thresholdValue>1</thresholdValue>
+						</threshold>
+					</limit>
+				</taskDefinition>
+			</taskDefinitionAlts>
+			<taskDefinition taskIdent="MT-2112300-01" taskCode="taskcd02">
+				<task>
+					<taskTitle>CИСТЕМА ОТСЕКОВ</taskTitle>
+					<taskDescr>
+						<simplePara>Информаци оботделе закрыт ОТКРЫТ</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MR FEC 9">
+					<externalPubRef>
+						<externalPubRefIdent>
+							<externalPubTitle>MR FEC 8</externalPubTitle>
+						</externalPubRefIdent>
+					</externalPubRef>
+				</rqmtSource>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="111"/>
+							<zoneRef zoneNumber="222"/>
+							<zoneRef zoneNumber="333"/>
+						</workAreaLocationGroup>
+					</productionMaintData>
+					<productionMaintData applicRefId="app-01">
+						<workAreaLocationGroup applicRefId="app-01">
+							<accessPointRef accessPointNumber="123W" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber=" 123у" accessPointTypeValue="accpnl01"/>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="111" unitOfMeasure="ч/час" procedureDuration="0.11" closeupDuration="0"/>
+					</productionMaintData>
+					<productionMaintData>
+						<workAreaLocationGroup applicRefId="app-02">
+							<accessPointRef accessPointNumber="111EW" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber=" 12343AT" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber="1123GW"/>
+							<accessPointRef accessPointNumber="1213JT"/>
+						</workAreaLocationGroup>
+						<taskDuration unitOfMeasure="ч/час" procedureDuration="0.1234" startupDuration="0.20080" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<reqCondNoRef>
+							<reqCond reqCondCategory="rcc01"/>
+						</reqCondNoRef>
+					</reqCondGroup>
+					<reqPersons applicRefId="app-01">
+						<personnel numRequired="1">
+							<personCategory personCategoryCode="AF"/>
+							<estimatedTime unitOfMeasure="ч/час">2</estimatedTime>
+						</personnel>
+					</reqPersons>
+					<reqTechInfoGroup>
+						<reqTechInfo>
+							<dmRef applicRefId="app-01">
+								<dmRefIdent>
+									<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="342" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="3" subSystemCode="2" systemCode="123" systemDiffCode="A" modelIdentCode="LLM"/>
+								</dmRefIdent>
+							</dmRef>
+						</reqTechInfo>
+						<reqTechInfo>
+							<dmRef applicRefId="app-02">
+								<dmRefIdent>
+									<dmCode itemLocationCode="A" infoCodeVariant="DD" infoCode="342" disassyCodeVariant="323" disassyCode="01" assyCode="00" subSubSystemCode="3" subSystemCode="2" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+								</dmRefIdent>
+							</dmRef>
+						</reqTechInfo>
+					</reqTechInfoGroup>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef applicRefId="app-01">
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="111" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="433" subSystemCode="2" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+						</dmRefIdent>
+					</dmRef>
+					<dmRef applicRefId="app-02">
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="111" disassyCodeVariant="A02" disassyCode="01" assyCode="00" subSubSystemCode="332" subSystemCode="2" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit>
+					<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+						<thresholdValue>5</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>5</thresholdValue>
+					</threshold>
+				</limit>
+			</taskDefinition>
+			<taskDefinition taskIdent="MT-232100-01" taskCode="taskcd02">
+				<task>
+					<taskTitle>СИСТЕМА АВТОМАТИЧЕСКОГО РЕГУЛИРОВАНИЯ ДАВЛЕНИЯ</taskTitle>
+					<taskDescr>
+						<simplePara> Информаци оботделе закрыт ОТКРЫТ</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MRBR">
+					<externalPubRef>
+						<externalPubRefIdent>
+							<externalPubTitle>MR FEC 6, </externalPubTitle>
+						</externalPubRefIdent>
+					</externalPubRef>
+				</rqmtSource>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="210"/>
+							<zoneRef zoneNumber="132"/>
+							<zoneRef zoneNumber="246"/>
+						</workAreaLocationGroup>
+					</productionMaintData>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<accessPointRef accessPointNumber="831" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber=" 821" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber=" 122JW" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointTypeValue="accpnl02">
+								<name>ЛЮК КУХОННОГО МОДУЛЯ 2</name>
+							</accessPointRef>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0.11" unitOfMeasure="ч/час" procedureDuration="0.23" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<reqCondNoRef>
+							<reqCond reqCondCategory="424"/>
+						</reqCondNoRef>
+					</reqCondGroup>
+					<reqPersons>
+						<personnel numRequired="1">
+							<personCategory personCategoryCode="AF"/>
+						</personnel>
+					</reqPersons>
+					<reqTechInfoGroup>
+						<reqTechInfo>
+							<dmRef applicRefId="app-01">
+								<dmRefIdent>
+									<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="340" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="1" subSystemCode="3" systemCode="21" systemDiffCode="A" modelIdentCode="LLM"/>
+								</dmRefIdent>
+							</dmRef>
+						</reqTechInfo>
+					</reqTechInfoGroup>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef>
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="123" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="3" subSystemCode="332" systemCode="22" systemDiffCode="A" modelIdentCode="LLM"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit limitTypeValue="oc" limitCond="B">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>1233</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>32323</thresholdValue>
+					</threshold>
+				</limit>
+				<limit limitTypeValue="oc" limitCond="L">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>2323</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>2323</thresholdValue>
+					</threshold>
+					<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+						<thresholdValue>22</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>32</thresholdValue>
+					</threshold>
+				</limit>
+			</taskDefinition>
+			<taskDefinition taskIdent="31233MT-08" taskCode="taskcd04">
+				<task>
+					<taskTitle>СТВОРКИ ОСНОВНОЙ ОПОРЫ ШАССИ</taskTitle>
+					<taskDescr>
+						<simplePara>ОБЩЕЕ СОСТОЯНИЕ</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MeeR">
+					<externalPubRef>
+						<externalPubRefIdent>
+							<externalPubTitle>MeeR FEC 6</externalPubTitle>
+						</externalPubRefIdent>
+					</externalPubRef>
+				</rqmtSource>
+				<rqmtSource sourceOfRqmt="AD">
+					<externalPubRef>
+						<externalPubRefIdent>
+							<externalPubTitle>AD ФАВТ</externalPubTitle>
+						</externalPubRefIdent>
+					</externalPubRef>
+				</rqmtSource>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="eee"/>
+							<zoneRef zoneNumber="e22"/>
+							<zoneRef zoneNumber="3e3"/>
+							<zoneRef zoneNumber="73e3240"/>
+						</workAreaLocationGroup>
+					</productionMaintData>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<accessPointRef accessPointNumber="23" accessPointTypeValue="accpnl01"/>
+							<accessPointRef accessPointNumber="7423231" accessPointTypeValue="accpnl01"/>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0.123" unitOfMeasure="ч/час" procedureDuration="0.23" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<reqCondNoRef>
+							<reqCond reqCondCategory="rcc01"/>
+						</reqCondNoRef>
+					</reqCondGroup>
+					<reqPersons>
+						<personnel numRequired="1">
+							<personCategory personCategoryCode="AF"/>
+						</personnel>
+					</reqPersons>
+					<reqTechInfoGroup>
+						<reqTechInfo>
+							<dmRef applicRefId="app-05">
+								<dmRefIdent>
+									<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="333" disassyCodeVariant="A01" disassyCode="01" assyCode="15" subSubSystemCode="1" subSystemCode="8" systemCode="52" systemDiffCode="A" modelIdentCode="LLM"/>
+								</dmRefIdent>
+							</dmRef>
+						</reqTechInfo>
+						<reqTechInfo>
+							<dmRef applicRefId="app-06">
+								<dmRefIdent>
+									<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="333" disassyCodeVariant="A02" disassyCode="01" assyCode="15" subSubSystemCode="1" subSystemCode="8" systemCode="52" systemDiffCode="A" modelIdentCode="LLM"/>
+								</dmRefIdent>
+							</dmRef>
+						</reqTechInfo>
+					</reqTechInfoGroup>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef applicRefId="app-05">
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="3434" disassyCodeVariant="A01" disassyCode="01" assyCode="15" subSubSystemCode="1" subSystemCode="8" systemCode="52" systemDiffCode="A" modelIdentCode="LLM"/>
+						</dmRefIdent>
+					</dmRef>
+					<dmRef applicRefId="app-06">
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="3434311" disassyCodeVariant="A02" disassyCode="01" assyCode="15" subSubSystemCode="1" subSystemCode="8" systemCode="52" systemDiffCode="A" modelIdentCode="LLM"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit applicRefId="app-03" limitTypeValue="oc" limitCond="B">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>3434</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>34343</thresholdValue>
+					</threshold>
+				</limit>
+				<limit applicRefId="app-03" limitTypeValue="oc" limitCond="L">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>3434</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>3434</thresholdValue>
+					</threshold>
+					<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+						<thresholdValue>48</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>85</thresholdValue>
+					</threshold>
+				</limit>
+				<limit applicRefId="app-04" limitTypeValue="oc" limitCond="B">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>2323</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>23442</thresholdValue>
+					</threshold>
+				</limit>
+				<limit applicRefId="app-04" limitTypeValue="oc" limitCond="L">
+					<threshold thresholdUnitOfMeasure="th01" thresholdType="interval">
+						<thresholdValue>234234</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>234234</thresholdValue>
+					</threshold>
+					<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+						<thresholdValue>8</thresholdValue>
+					</threshold>
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>8</thresholdValue>
+					</threshold>
+				</limit>
+			</taskDefinition>
+		</maintPlanning>
+	</content>
+</dmodule>

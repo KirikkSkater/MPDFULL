@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE dmodule [
+]>
+<dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-1/xml_schema_flat/schedul.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<identAndStatusSection>
+		<dmAddress>
+			<dmIdent>
+				<dmCode modelIdentCode="RRJ" systemDiffCode="A" systemCode="05" subSystemCode="5" subSubSystemCode="4" assyCode="10" disassyCode="00" disassyCodeVariant="A01" infoCode="0B4" infoCodeVariant="A" itemLocationCode="A"/>
+				<language countryIsoCode="RU" languageIsoCode="ru"/>
+				<issueInfo issueNumber="003" inWork="00"/>
+			</dmIdent>
+			<dmAddressItems>
+				<issueDate year="2022" month="12" day="19"/>
+				<dmTitle>
+					<techName>ПЕРЕЧНИ ОБЯЗАТЕЛЬНЫХ ОСМОТРОВ МЕСТ КОНСТРУКЦИИ САМОЛЁТА</techName>
+					<infoName>РЕСУРСЫ И СРОКИ СЛУЖБЫ</infoName>
+				</dmTitle>
+			</dmAddressItems>
+		</dmAddress>
+		<dmStatus issueType="new">
+			<security securityClassification="01"/>
+			<responsiblePartnerCompany enterpriseCode="AA62F">
+				<enterpriseName>IRKUT</enterpriseName>
+			</responsiblePartnerCompany>
+			<originator enterpriseCode="AA62F">
+				<enterpriseName>IRKUT</enterpriseName>
+			</originator>
+			<applic>
+				<displayText/>
+				<assert applicPropertyIdent="serialno" applicPropertyType="prodattr" applicPropertyValues="95007~95074|95076~95999"/>
+			</applic>
+			<brexDmRef>
+				<dmRef xlink:type="simple" xlink:actuate="onRequest" xlink:show="replace" xlink:href="URN:S1000D:DMC-RRJ-A-00-00-00-00A-022A-A">
+					<dmRefIdent>
+						<dmCode modelIdentCode="RRJ" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="A"/>
+					</dmRefIdent>
+				</dmRef>
+			</brexDmRef>
+			<qualityAssurance>
+				<unverified/>
+			</qualityAssurance>
+		</dmStatus>
+	</identAndStatusSection>
+	<content>
+		<maintPlanning>
+			<commonInfo>
+				<title>ЗОНА 100 – НИЖНЯЯ ЧАСТЬ ФЮЗЕЛЯЖА</title>
+				<para/>
+			</commonInfo>
+			<taskDefinition taskIdent="100000ZT-01" taskCode="taskcd04">
+				<task>
+					<taskTitle>ЗОНА 100: НИЖНЯЯ ЧАСТЬ ФЮЗЕЛЯЖА</taskTitle>
+					<taskDescr>
+						<simplePara>ОБЩИЙ ВИЗУАЛЬНЫЙ ОСМОТР (ВНЕШНИЙ) НИЖНЕЙ ЧАСТИ ФЮЗЕЛЯЖА, ВКЛЮЧАЯ НОСОВОЙ ОБТЕКАТЕЛЬ И ГЕРМЕТИЧНЫЕ ЛЮКИ</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MRB"/>
+				<rqmtSource sourceOfRqmt="CPCP"/>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="100"/>
+							<accessPointRef>
+								<name>ПРЯМОЙ</name>
+							</accessPointRef>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0,816667" procedureDuration="0,683333" unitOfMeasure="чел.час" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<noConds/>
+					</reqCondGroup>
+					<reqPersons>
+						<person man="1">
+							<personCategory personCategoryCode="AF"/>
+						</person>
+					</reqPersons>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef>
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="311" disassyCodeVariant="A01" disassyCode="01" assyCode="00" subSubSystemCode="1" subSystemCode="2" systemCode="17" systemDiffCode="A" modelIdentCode="RRJ"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit limitCond="B" limitTypeValue="pe">
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+					<threshold thresholdType="interval" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+				</limit>
+				<limit limitCond="L" limitTypeValue="pe">
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+					<threshold thresholdType="interval" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+					<threshold thresholdUnitOfMeasure="th05" thresholdType="interval">
+						<thresholdValue>2</thresholdValue>
+					</threshold>
+				</limit>
+				<remarks>
+					<simplePara>ПРИМЕЧАНИЕ: ВСЕ ДВЕРИ ЗАКРЫТЫ</simplePara>
+				</remarks>
+			</taskDefinition>
+			<taskDefinition taskIdent="100000ZT-02" taskCode="taskcd04">
+				<task>
+					<taskTitle>ЗОНА 100: НИЖНЯЯ ЧАСТЬ ФЮЗЕЛЯЖА</taskTitle>
+					<taskDescr>
+						<simplePara>ОБЩИЙ ВИЗУАЛЬНЫЙ ОСМОТР (ВНУТРЕННИЙ) НИЖНЕЙ ЧАСТИ ФЮЗЕЛЯЖА, МЕЖДУ ШП. 48-50 И СТР. 26-32</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MRB"/>
+				<rqmtSource sourceOfRqmt="CPCP"/>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="100"/>
+							<accessPointRef accessPointNumber="161A" accessPointTypeValue="accpnl02"/>
+							<accessPointRef accessPointNumber="162A" accessPointTypeValue="accpnl02"/>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0,05" procedureDuration="1.25" unitOfMeasure="чел.час" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<noConds/>
+					</reqCondGroup>
+					<reqPersons>
+						<person man="1">
+							<personCategory personCategoryCode="AF"/>
+						</person>
+					</reqPersons>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef>
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="311" disassyCodeVariant="A01" disassyCode="02" assyCode="00" subSubSystemCode="1" subSystemCode="2" systemCode="17" systemDiffCode="A" modelIdentCode="RRJ"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit limitTypeValue="pe">
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+					<threshold thresholdType="interval" thresholdUnitOfMeasure="th01">
+						<thresholdValue>1500</thresholdValue>
+					</threshold>
+				</limit>
+			</taskDefinition>
+			<taskDefinition taskIdent="111000ZT-01" taskCode="taskcd04">
+				<task>
+					<taskTitle>ЗОНА 111: НОСОВОЙ ОБТЕКАТЕЛЬ</taskTitle>
+					<taskDescr>
+						<simplePara>ОБЩИЙ ВИЗУАЛЬНЫЙ ОСМОТР (ВНУТРЕННИЙ) НОСОВОГО ОБТЕКАТЕЛЯ</simplePara>
+					</taskDescr>
+				</task>
+				<rqmtSource sourceOfRqmt="MRB"/>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="111"/>
+							<accessPointRef accessPointNumber="111A" accessPointTypeValue="accpnl02"/>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0,133333" procedureDuration="0,2" unitOfMeasure="чел.час" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<noConds/>
+					</reqCondGroup>
+					<reqPersons>
+						<person man="1">
+							<personCategory personCategoryCode="AF"/>
+						</person>
+					</reqPersons>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef>
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="311" disassyCodeVariant="A01" disassyCode="01" assyCode="10" subSubSystemCode="1" subSystemCode="2" systemCode="17" systemDiffCode="A" modelIdentCode="RRJ"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit limitTypeValue="pe">
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>4</thresholdValue>
+					</threshold>
+					<threshold thresholdType="interval" thresholdUnitOfMeasure="th05">
+						<thresholdValue>4</thresholdValue>
+					</threshold>
+				</limit>
+			</taskDefinition>
+			<taskDefinition taskIdent="111000ZT-01" taskCode="taskcd04">
+				<task>
+					<taskTitle>ЗОНА 112: ПЕРЕДНИЙ ТЕХНИЧЕСКИЙ ОТСЕК</taskTitle>
+					<taskDescr>
+						<simplePara>ОБЩИЙ ВИЗУАЛЬНЫЙ ОСМОТР (ВНУТРЕННИЙ) ПЕРЕДНЕГО ТЕХНИЧЕСКОГО ОТСЕКА</simplePara>
+					</taskDescr>
+					<taskMarker markerType="EWIS"/>
+				</task>
+				<rqmtSource sourceOfRqmt="MRB"/>
+				<preliminaryRqmts>
+					<productionMaintData>
+						<workAreaLocationGroup>
+							<zoneRef zoneNumber="111"/>
+							<accessPointRef accessPointNumber="111A" accessPointTypeValue="accpnl02"/>
+						</workAreaLocationGroup>
+						<taskDuration startupDuration="0,133333" procedureDuration="0,2" unitOfMeasure="чел.час" closeupDuration="0"/>
+					</productionMaintData>
+					<reqCondGroup>
+						<noConds/>
+					</reqCondGroup>
+					<reqPersons>
+						<person man="1">
+							<personCategory personCategoryCode="AF"/>
+						</person>
+					</reqPersons>
+					<reqPersons>
+						<person man="1">
+							<personCategory personCategoryCode="AV"/>
+						</person>
+					</reqPersons>
+					<reqSupportEquips>
+						<noSupportEquips/>
+					</reqSupportEquips>
+					<reqSupplies>
+						<noSupplies/>
+					</reqSupplies>
+					<reqSpares>
+						<noSpares/>
+					</reqSpares>
+					<reqSafety>
+						<noSafety/>
+					</reqSafety>
+				</preliminaryRqmts>
+				<refs>
+					<dmRef>
+						<dmRefIdent>
+							<dmCode itemLocationCode="A" infoCodeVariant="A" infoCode="311" disassyCodeVariant="A01" disassyCode="01" assyCode="10" subSubSystemCode="1" subSystemCode="2" systemCode="17" systemDiffCode="A" modelIdentCode="RRJ"/>
+						</dmRefIdent>
+					</dmRef>
+				</refs>
+				<limit limitTypeValue="pe">
+					<threshold thresholdType="threshold" thresholdUnitOfMeasure="th05">
+						<thresholdValue>4</thresholdValue>
+					</threshold>
+					<threshold thresholdType="interval" thresholdUnitOfMeasure="th05">
+						<thresholdValue>4</thresholdValue>
+					</threshold>
+				</limit>
+				<remarks>
+					<simplePara>ТЗИ СНЯТА ПРИ НЕОБХОДИМОСТИ</simplePara>
+				</remarks>
+			</taskDefinition>
+		</maintPlanning>
+	</content>
+</dmodule>
