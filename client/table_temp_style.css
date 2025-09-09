@@ -5,6 +5,18 @@ table {
     border-collapse: collapse;
 }
 
+#main-wrapper {
+  display: flex;
+  height: 100vh; /* Занимаем всю высоту окна */
+  overflow: hidden; /* Отключаем скролл контейнера */
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* Убираем скролл всей страницы */
+}
+
 table.disable {
             pointer-events: none; /* Disable all mouse events */
 			cursor: not-allowed;
@@ -16,10 +28,41 @@ table.disable {
     font-weight: bold;
     background: #efefef;
     /* border: 1px solid #000; */
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 100;
     text-align: center;
     vertical-align: middle;
     /* padding: 12px 8px; Увеличили отступы */
+}
+
+.sub-header-row {
+  position: sticky;
+  top: 60px; /* Высота первой строки заголовка */
+  z-index: 99;
+  background-color: #f8f9fa;
+}
+
+.table-header th, .sub-header-row th {
+  position: sticky;
+  border-bottom: 1px solid #ddd;
+}
+
+.applic-text {
+    pointer-events: none;
+    user-select: none;
+    font-size: 0.75em;
+    color: #777;
+    margin-top: 2px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.editable-cell .editable-text {
+    min-height: 1.2em;
+    outline: none;
+    
+    white-space: pre-wrap;
 }
 
 .task-group-subtitle {
@@ -143,4 +186,119 @@ table.disable {
 
 .edit-mode-btn{
     display: none;
+}
+
+/* ---- */
+/* Стили для контейнера Limit */
+.limit-container {
+  position: relative;
+  padding: 5px 0;
+}
+
+.limit-edit-hint {
+  font-size: 0.8em;
+  color: #6c757d;
+  text-align: center;
+  margin-top: 5px;
+  opacity: 0.7;
+}
+
+/* Стили для одного блока Limit */
+.limit-block {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+}
+
+.limit-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.limit-type-select {
+  flex: 0 0 60px;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+}
+
+.limit-condition-input {
+  flex: 1;
+  margin-left: 8px;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  min-width: 15px;
+  max-width: 20px;
+}
+
+/* Стили для строк с данными */
+.limit-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.limit-label {
+  flex: 0 0 80px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.limit-value-input {
+  flex: 1;
+  margin-right: 5px;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  min-width: 50px;
+}
+
+.limit-unit-select {
+  flex: 1;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  min-width: 80px;
+}
+
+/* Базовый стиль для тега применимости */
+.applic-tag {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    padding: 3px 6px;
+    margin: 2px 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85em;
+    color: #495057;
+}
+
+/* Стиль для текста применимости */
+.applic-tag .applic-text {
+    margin-right: 5px;
+}
+
+/* Стиль для кнопки удаления */
+.applic-tag .delete-applic {
+    color: white;
+    background: none;
+    border: none;
+    padding: 0 3px;
+    cursor: pointer;
+    font-weight: bold;
+    line-height: 1;
+    background-color: #2e7fd6;
+}
+
+/* Специфичный стиль для тегов в limit */
+.limit-applic-tag {
+    margin-top: 5px;
+    background-color: #e9ecef;
+    border-color: #ced4da;
 }

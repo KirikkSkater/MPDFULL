@@ -88,45 +88,34 @@ class ScheduledController {
 
   bindToolbar() {
     const ctrl = this;
-
+  
     $('#edit-btn')
       .prop('disabled', false)
       .off('click')
       .on('click', function () {
         if ($(this).hasClass('edit')) {
+          // === ВКЛЮЧАЕМ РЕЖИМ РЕДАКТИРОВАНИЯ ===
           ctrl.editMode = true;
           $('.action-button-td, .action-button').removeClass('hidden');
         } else {
-          const checkStr = window.checkRes?.();
-          if (checkStr) {
-            alert(checkStr);
-            return;
-          }
-          const userConfirmed = confirm("Сохранить результат?");
-          if (userConfirmed) {
-            ctrl.editMode = false;
-            window.finishEditing?.(true);
-          } else {
-            ctrl.editMode = true;
-          }
+          // === ВЫКЛЮЧАЕМ РЕЖИМ РЕДАКТИРОВАНИЯ ===
+          ctrl.editMode = false;
         }
+  
         ctrl.setEditMode(ctrl.editMode);
         ctrl.setPreviewButton(false);
         $(this).prepend($('<span class="icon">'));
       });
-
+  
     $('#exit-btn')
       .off('click')
       .on('click', function () {
-        const userConfirmed = confirm("Вы действительно хотите отметить изменения?");
-        if (userConfirmed) {
-          ctrl.editMode = false;
-          window.finishEditing?.(false);
-          ctrl.setEditMode(ctrl.editMode);
-        }
+        // тут только отключаем редактирование
+        ctrl.editMode = false;
+        ctrl.setEditMode(ctrl.editMode);
         ctrl.setPreviewButton(false);
       });
-
+  
     $('#preview-btn')
       .off('click')
       .on('click', function () {
@@ -140,6 +129,7 @@ class ScheduledController {
         }
       });
   }
+
 
   bindSidebarToggle() {
     const sidebar = $('#applic-sidebar');

@@ -6,6 +6,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.databind.ser.std.StdKeySerializers.Default;
 import com.irkut.tc.mpdeditor.Activator;
 import com.irkut.tc.mpdeditor.server.SparkServer;
 import com.irkut.tc.mpdeditor.util.HandlerDataset;
+import com.irkut.tc.mpdeditor.util.UpdateDataset;
 import com.teamcenter.rac.aifrcp.AIFUtility;
 import com.teamcenter.rac.common.health.JettyServerStarter;
 import com.teamcenter.rac.kernel.TCComponent;
@@ -27,6 +29,7 @@ import com.teamcenter.rac.kernel.TCSession;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.EnumSet;
 
 import javax.management.RuntimeErrorException;
 import javax.servlet.*;
@@ -46,6 +49,8 @@ public class HandlerStartServer extends AbstractHandler{
 				Server server = new Server(9090);
 		        ServletContextHandler context = new ServletContextHandler();
 		        context.setContextPath("/");
+		        
+		        context.addFilter(MyCorsFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
 		        
 		        URL publicURL = HandlerStartServer.class.getResource("/public");
 		        if (publicURL != null) {
@@ -109,6 +114,9 @@ public class HandlerStartServer extends AbstractHandler{
 		 
 		        ServletHolder holderGetDataset = new ServletHolder(new HandlerDataset());
 		        context.addServlet(holderGetDataset, "/getdataset"); // getdataset?uid=(uid)
+		        
+		        ServletHolder holderUpdateDataset = new ServletHolder(new UpdateDataset());
+		        context.addServlet(holderUpdateDataset, "/updatedataset"); // getdataset?uid=(uid)
 		        
 		        ServletHolder defauldHolder = new ServletHolder("static", DefaultServlet.class);
 		        defauldHolder.setInitParameter("dirAllowed", "true");

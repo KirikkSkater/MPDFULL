@@ -112,7 +112,7 @@ public class UpdateDataset extends AbstractDatasetHandler{
 								e.printStackTrace();
 							}
 							
-							componentDataset.setFiles(new String[] {"C:\\temp" + fileNames[0]}, new String[] {fileNames[0]});
+							componentDataset.setFiles(new String[] {"C:\\temp\\" + fileNames[0]}, new String[] {fileNames[0]});
 
 //							TCComponentDataset datasetNew = componentDataset.revise();
 //							datasetNew.removeFiles(fileNames[0]);

@@ -104,7 +104,7 @@
 
             
 
-            <button disabled class="button-toolbar" id="edit-btn" type="button">Редактировать</button>
+            <button disabled class="button-toolbar edit" id="edit-btn" type="button">Редактировать</button>
             <button disabled title="Отменить изменения" class="button-toolbar exit" id="exit-btn" type="button">Отмена</button>
         </div>
     </div>
@@ -137,7 +137,7 @@
     var infoCode = '0B2A'; // Значение по умолчанию
 
     // Создаём handler для Teamcenter API (base URL по умолчанию '')
-    var tcHandler = new HandlerTeamcenter(''); // если нужен префикс, укажи '/api' и т.д.
+    var tcHandler = new HandlerTeamcenter('http://localhost:9090/'); // если нужен префикс, укажи '/api' и т.д.
     window.tcHandler = tcHandler;
 
     // Контроллер (пока без XML)
@@ -210,7 +210,7 @@
         window.controller.bindToolbar();
 
         // Включаем кнопку Сохранить
-        $saveBtn.prop('disabled', false);
+        // $saveBtn.prop('disabled', false);
 
       } catch (err) {
         console.error('Ошибка при загрузке dataset:', err);
@@ -220,14 +220,16 @@
       }
     });
 
+    // Кнопка сохранить — повесим на click — она вызывает window.finishEditing через confirm в toolbar flo
+
     // Если нужно — можно также позволить загрузку тестового xml при старте (удалите/закомментируйте если не нужно)
-    //  fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')
-    //    .then(res => res.text())
-    //    .then(xmlString => {
-    //        window.controller.init(xmlString);
-    //        window.controller.bindToolbar();
-    //        // не включаем save (т.к. нет uid)
-    //    }).catch(err => console.error('Ошибка при загрузке XML:', err));
+    // fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')
+    //   .then(res => res.text())
+    //   .then(xmlString => {
+    //       window.controller.init(xmlString);
+    //       window.controller.bindToolbar();
+    //       // не включаем save (т.к. нет uid)
+    //   }).catch(err => console.error('Ошибка при загрузке XML:', err));
         })();
     </script>
 

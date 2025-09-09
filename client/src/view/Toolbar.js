@@ -23,37 +23,42 @@ class Toolbar{
         })
 
         this.editBtn.addEventListener('click', () => {
-            
-            if (this.editBtn.classList.contains("edit")){
+            if (this.editBtn.classList.contains("edit")) {
+                // === ПЕРВОЕ НАЖАТИЕ ===
                 this.editMode = true;
+        
                 let buttons = document.querySelectorAll('.action-button-td, .action-button');
-                for(let i =0; i < buttons.length; i++){
-                    buttons[i].classList.remove("hidden"); // показываю
+                for (let i = 0; i < buttons.length; i++) {
+                    buttons[i].classList.remove("hidden");
                 }
-            }else{
+        
+                // переключаем кнопку в режим "Сохранить"
+                setEditModeTable(this.editMode);
+                this.setEditMode(this.editMode);
+        
+            } else if (this.editBtn.classList.contains("save")) {
+                // === ВТОРОЕ НАЖАТИЕ ===
                 let checkStr = checkRes();
-                if (checkStr){
+                if (checkStr) {
                     alert(checkStr);
                     return;
                 }
+        
                 const userConfirmed = confirm("Сохранить результат?");
-                // TODO: тут делать проверку на коды МОС и тд, перед saveResult, возможно делать в saveResult и возвращать true
                 if (userConfirmed) {
                     this.editMode = false;
-                    finishEditing(true);
+                    finishEditing(true);  // <-- тут вызов сохранения
+                    setEditModeTable(this.editMode);
+                    this.setEditMode(this.editMode);
                 } else {
-                    // Если пользователь отменил сохранение, просто продолжаем редактирование
                     console.log("сохранение отменено");
-                    this.editMode = true;
                 }
             }
-            setEditModeTable(this.editMode);
-            this.setEditMode(this.editMode);
-            const icon = document.createElement('span');
-            icon.className = 'icon';
-            this.editBtn.insertBefore(icon, this.editBtn.firstChild);
+        
             this.setPreviewButton(false);
         });
+
+
 
         this.previewBtn.addEventListener('click', () => {
             
