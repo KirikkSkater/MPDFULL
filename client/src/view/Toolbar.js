@@ -22,41 +22,41 @@ class Toolbar{
             // initTableWithCurentObject();
         })
 
-        this.editBtn.addEventListener('click', () => {
-            if (this.editBtn.classList.contains("edit")) {
-                // === ПЕРВОЕ НАЖАТИЕ ===
-                this.editMode = true;
+        // this.editBtn.addEventListener('click', () => {
+        //     if (this.editBtn.classList.contains("edit")) {
+        //         // === ПЕРВОЕ НАЖАТИЕ ===
+        //         this.editMode = true;
         
-                let buttons = document.querySelectorAll('.action-button-td, .action-button');
-                for (let i = 0; i < buttons.length; i++) {
-                    buttons[i].classList.remove("hidden");
-                }
+        //         let buttons = document.querySelectorAll('.action-button-td, .action-button');
+        //         for (let i = 0; i < buttons.length; i++) {
+        //             buttons[i].classList.remove("hidden");
+        //         }
         
-                // переключаем кнопку в режим "Сохранить"
-                setEditModeTable(this.editMode);
-                this.setEditMode(this.editMode);
+        //         // переключаем кнопку в режим "Сохранить"
+        //         setEditModeTable(this.editMode);
+        //         this.setEditMode(this.editMode);
         
-            } else if (this.editBtn.classList.contains("save")) {
-                // === ВТОРОЕ НАЖАТИЕ ===
-                let checkStr = checkRes();
-                if (checkStr) {
-                    alert(checkStr);
-                    return;
-                }
+        //     } else if (this.editBtn.classList.contains("save")) {
+        //         // === ВТОРОЕ НАЖАТИЕ ===
+        //         let checkStr = checkRes();
+        //         if (checkStr) {
+        //             alert(checkStr);
+        //             return;
+        //         }
         
-                const userConfirmed = confirm("Сохранить результат?");
-                if (userConfirmed) {
-                    this.editMode = false;
-                    finishEditing(true);  // <-- тут вызов сохранения
-                    setEditModeTable(this.editMode);
-                    this.setEditMode(this.editMode);
-                } else {
-                    console.log("сохранение отменено");
-                }
-            }
+        //         const userConfirmed = confirm("Сохранить результат?");
+        //         if (userConfirmed) {
+        //             this.editMode = false;
+        //             finishEditing(true);  // <-- тут вызов сохранения
+        //             setEditModeTable(this.editMode);
+        //             this.setEditMode(this.editMode);
+        //         } else {
+        //             console.log("сохранение отменено");
+        //         }
+        //     }
         
-            this.setPreviewButton(false);
-        });
+        //     this.setPreviewButton(false);
+        // });
 
 
 
@@ -156,7 +156,6 @@ class Toolbar{
 
     setEditMode(editMode){
         this.editMode = editMode;
-        this.tcNameBox.disabled = !editMode;
 
         if (editMode){
             this.editBtn.classList.remove('edit');

@@ -27,6 +27,10 @@ class ScheduledController {
     this._docDragEndHandler = null;
   }
 
+  addfinishEditing(finishEditing){
+    this.finishEditing = finishEditing;
+  }
+
   // Подписка/отписка - возвращаем функцию отписки
   onChange(callback) {
     if (typeof callback !== 'function') return () => {};
@@ -154,6 +158,17 @@ class ScheduledController {
     } else {
       $editBtn.removeClass('save').addClass('edit').text('Редактировать');
       $previewBtn.prop('disabled', true);
+
+      const userConfirmed = confirm("Сохранить результат?");
+                if (userConfirmed) {
+                    this.editMode = false;
+                    this.finishEditing(true);  // <-- тут вызов сохранения
+                    // setEditModeTable(this.editMode);
+                    // this.setEditMode(this.editMode);
+                } else {
+                    console.log("сохранение отменено");
+                }
+
       this.setPreviewButton(true);
     }
 
