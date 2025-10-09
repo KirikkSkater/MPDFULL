@@ -29,7 +29,7 @@ table.disable {
     background: #efefef;
     /* border: 1px solid #000; */
     position: sticky;
-    top: 0;
+    top: 4px;
     z-index: 100;
     text-align: center;
     vertical-align: middle;
@@ -38,14 +38,14 @@ table.disable {
 
 .sub-header-row {
   position: sticky;
-  top: 60px; /* Высота первой строки заголовка */
+  top: 33px; /* Высота первой строки заголовка */
   z-index: 99;
-  background-color: #f8f9fa;
+  background-color: #cfcfcf;
 }
 
 .table-header th, .sub-header-row th {
   position: sticky;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #f9f9f9;
 }
 
 .applic-text {
@@ -185,7 +185,7 @@ table.disable {
 }
 
 .edit-mode-btn{
-    display: none;
+    /* display: none; */
 }
 
 /* ---- */
@@ -258,6 +258,17 @@ table.disable {
   min-width: 50px;
 }
 
+.remove-limit-btn{
+  margin-left: 5px;
+  background-color: #ffd0d2;
+  border-color: rgb(255, 85, 85);
+  font-size: 20px;
+  padding: 2px 5px;
+  line-height: 1;
+  color: white;
+  border-radius: 5px;
+}
+
 .limit-unit-select {
   flex: 1;
   padding: 2px 5px;
@@ -266,17 +277,55 @@ table.disable {
   min-width: 80px;
 }
 
+.add-limit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #9bebad;
+  border-radius: 5px;
+  border: none;
+  /* font-size: 20px; */
+  cursor: pointer;
+}
+
+.task-code-select {
+  flex: 1;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  min-width: 30px;
+  max-width: 80px; 
+  box-sizing: border-box;
+  width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.source-criticality-select {
+  flex: 1;
+  padding: 1px 2px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  box-sizing: border-box;
+  width: 100%;
+  text-overflow: ellipsis;
+  /* overflow: hidden; */
+  /* white-space: nowrap; */
+}
+
 /* Базовый стиль для тега применимости */
 .applic-tag {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 3px;
-    padding: 3px 6px;
-    margin: 2px 0;
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.85em;
-    color: #495057;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  padding: 3px 6px;
+  margin: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85em;
+  color: #495057;
+  border-left: 2px solid rgb(255, 85, 85);
 }
 
 /* Стиль для текста применимости */
@@ -288,17 +337,632 @@ table.disable {
 .applic-tag .delete-applic {
     color: white;
     background: none;
-    border: none;
+    border-width: 1px;
     padding: 0 3px;
     cursor: pointer;
     font-weight: bold;
     line-height: 1;
-    background-color: #2e7fd6;
+    background-color: #ffd0d2;
+    border-color: rgb(255, 85, 85);
 }
+
 
 /* Специфичный стиль для тегов в limit */
 .limit-applic-tag {
     margin-top: 5px;
     background-color: #e9ecef;
     border-color: #ced4da;
+}
+
+
+.task-applicability-row {
+  background-color: #f0f8ff;
+}
+
+.task-applicability-cell {
+  padding: 5px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+}
+
+.applicability-label {
+  font-weight: bold;
+  margin-right: 10px;
+  color: #495057;
+}
+
+
+/* Стили для контейнера описания задачи */
+.task-description-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Стили для блоков примечания и режима контроля */
+.remarks-block,
+.supervisor-block {
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.remarks-label,
+.supervisor-label {
+  font-weight: bold;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.remarks-text,
+.supervisor-text {
+  font-size: 0.9em;
+  line-height: 1.3;
+}
+
+/* Специфичные стили для примечания */
+.remarks-block {
+  background-color: #fff8e1;
+  border-color: #ffe082;
+}
+
+/* Специфичные стили для режима контроля */
+.supervisor-block {
+  background-color: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+/* Стили для контекстного меню применимости */
+/* Стили для контекстного меню задач */
+.context-menu.task-context-menu {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  font-size: 14px;
+}
+
+.context-menu .menu-option {
+  padding: 8px 15px;
+  cursor: pointer;
+  position: relative;
+}
+
+.context-menu .menu-option:hover {
+  background-color: #f5f5f5;
+}
+
+.context-menu .menu-option.with-submenu::after {
+  content: "→";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Стили для подменю */
+.context-menu .submenu {
+  display: none;
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1001;
+}
+
+.context-menu .submenu-option {
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.context-menu .submenu-option:hover {
+  background-color: #f5f5f5;
+}
+
+.context-menu .submenu-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 5px 0;
+}
+
+
+/* ------ */
+
+.personnel-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+}
+
+.remove-personnel-btn {
+  margin-left: 5px;
+  background-color: #ffd0d2;
+  border-color: rgb(255, 85, 85);
+  font-size: 20px;
+  padding: 2px 5px;
+  max-height: 26px;
+  min-width: 12px;
+  line-height: 1;
+  color: white;
+  border-radius: 5px;
+}
+
+.personnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 5px;
+}
+
+.personnel-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+.add-personnel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #9bebad;
+  border-radius: 5px;
+  border: none;
+  /* font-size: 20px; */
+  cursor: pointer;
+}
+
+.personnel-num-input {
+  width: 60px;
+  padding: 3px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  margin-left: 5px;
+}
+
+.personnel-input-container{
+  display: flex;
+  align-items: center;
+  /* margin-bottom: 4px; */
+}
+.personnel-input-container-spec{
+  display: block;
+}
+
+.personnel-input-container label {
+  font-size: 0.8em;
+  font-weight: bold;
+  /* min-width: 80px; */
+  color: #555;
+}
+.personnel-cat-select {
+  padding: 3px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  min-width: 100px;
+}
+
+
+/*     */
+
+.info-code-cell {
+  background-color: #e9ecef;
+  font-weight: bold;
+  padding: 8px;
+  text-align: center;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.info-code-block{
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+}
+
+/*---------------*/
+
+.zone-container{
+  position: relative;
+  padding: 5px 0;
+}
+.zone-block{
+  /* border: 1px solid #dee2e6; */
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  /* background-color: #f8f9fa; */
+}
+
+.add-zone-btn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #9bebad;
+  border-radius: 5px;
+  border: none;
+  /* font-size: 20px; */
+  cursor: pointer;
+}
+
+.remove-zone-btn{
+  margin-left: 5px;
+  background-color: #ffd0d2;
+  border-color: rgb(255, 85, 85);
+  font-size: 20px;
+  padding: 2px 5px;
+  line-height: 1;
+  color: white;
+  border-radius: 5px;
+  /* font-size: 20px; */
+}
+
+.zone-number-select{
+  flex: 0 0 60px;
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+}
+
+.zone-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* --- ГРУППЫ ЗОН и ТОЧЕК ДОСТУПА --- */
+.work-area-group-block {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  /* padding: 8px; */
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+}
+
+.work-area-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+/* Контейнер содержимого группы */
+.work-area-group-content {
+  /* padding-left: 10px; */
+}
+
+/* --- ЗОНЫ В ГРУППЕ --- */
+.zones-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zone-in-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  /* border: 1px solid #dee2e6; */
+  border-radius: 3px;
+  padding: 6px;
+  /* background-color: #ffffff; */
+}
+
+/* --- ТОЧКИ ДОСТУПА В ГРУППЕ --- */
+.access-points-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.access-point-in-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  /* border: 1px solid #dee2e6; */
+  border-radius: 3px;
+  padding: 3px;
+  /* background-color: #ffffff; */
+}
+
+/* --- Селекты --- */
+.access-point-number-select,
+.access-point-type-select,
+.zone-number-select {
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+}
+
+.access-point-number-select,
+.access-point-type-select{
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+  width: 100%;
+}
+
+/* --- Кнопки --- */
+.add-zone-btn,
+.add-access-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #9bebad;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  margin-top: 3px;
+}
+
+.remove-zone-btn,
+.remove-group-btn,
+.remove-access-btn {
+  background-color: #ffd0d2;
+  border-color: rgb(255, 85, 85);
+  font-size: 16px;
+  padding: 2px 6px;
+  line-height: 1;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+
+.supervisor-block {
+  margin-top: 8px;
+  padding: 5px;
+  border-left: 3px solid #007bff;
+  background-color: #f8f9fa;
+}
+
+.supervisor-label {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.supervisor-level-select {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.supervisor-level-container {
+  padding: 5px;
+}
+
+/* Для отдельной ячейки */
+.supervisor-level-container .supervisor-level-select {
+  min-width: 150px;
+}
+
+/* Стили для неактивного состояния */
+.supervisor-level-select:disabled {
+  background-color: #e9ecef;
+  opacity: 1;
+}
+
+.change-type-select {
+  padding: 2px 5px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+}
+
+
+.common-info-cell {
+  position: relative;
+  font-weight: bold;
+  font-size: 1.2em;
+  padding: 15px !important;
+  background-color: #e9ecef;
+}
+
+.task-group-subtitle {
+  position: relative;
+  font-weight: bold;
+  background-color: #f8f9fa;
+  padding: 10px !important;
+  border-left: 4px solid #007bff;
+}
+
+.editable-section-title {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.editable-section-title:hover {
+  background-color: #e3f2fd;
+  border: 1px dashed #007bff;
+}
+
+.section-title-input {
+  display: inline-block !important;
+  font-weight: bold;
+  background-color: white;
+  border: 2px solid #007bff;
+}
+
+/* Стили для кнопок */
+.add-section-btn, .add-task-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  position: relative !important;
+}
+
+.add-section-btn:hover, .add-task-btn:hover {
+  opacity: 1;
+}
+
+.add-section-btn {
+  font-size: 1em;
+  padding: 2px 8px;
+}
+
+.add-task-btn {
+  font-size: 0.9em;
+  padding: 1px 6px;
+}
+
+
+
+/*------------*/
+.schedule-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e9ecef; /* Более тонкая внешняя рамка */
+  background-color: white;
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Более тонкая внешняя граница для таблицы */
+.schedule-table {
+  box-shadow: 0 0 0 1px #e9ecef; /* Уменьшил с 2px до 1px */
+}
+
+/* Внутренние границы с помощью псевдо-элементов */
+.schedule-table th::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -0.5px; /* Уменьшил смещение */
+  bottom: 0;
+  width: 0.5px; /* Более тонкие линии */
+  background-color: #e9ecef;
+  pointer-events: none;
+}
+
+.schedule-table th::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.5px; /* Уменьшил смещение */
+  height: 0.5px; /* Более тонкие линии */
+  background-color: #e9ecef;
+  pointer-events: none;
+}
+
+/* Убираем лишние границы у последних ячеек */
+.schedule-table th:last-child::after {
+  display: none;
+}
+
+.schedule-table tr:last-child th::before {
+  display: none;
+}
+
+/* Сохраняем стили заголовков */
+.schedule-table th {
+  position: relative;
+  /* Добавьте сюда оригинальные стили для заголовков, если они были */
+  background-color: #f8f9fa; /* Пример цвета фона заголовков */
+  padding: 8px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.table-bordered>tbody>tr>td {
+  border: 1px solid #f3f3f3;
+}
+
+
+/*taskDuration*/
+.task-duration-container {
+  position: relative;
+  padding: 5px 0;
+}
+
+.task-duration-block {
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+
+.add-task-duration-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #9bebad;
+  border-radius: 5px;
+  border: none;
+  /* font-size: 20px; */
+  cursor: pointer;
+}
+
+.add-task-duration-btn:hover {
+  background-color: #7de394;
+}
+
+.remove-task-duration-btn {
+  background-color: #ffd0d2;
+  border-color: rgb(255, 85, 85);
+  font-size: 16px;
+  padding: 2px 6px;
+  line-height: 1;
+  color: #000;
+  border-radius: 5px;
+  border: 1px solid #ff5555;
+  cursor: pointer;
+}
+
+.remove-task-duration-btn:hover {
+  background-color: #ffb8b8;
+}
+
+.task-duration-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.task-duration-row {
+  margin-bottom: 8px;
+}
+
+.task-duration-label {
+  font-size: 11px;
+  color: #495057;
+  margin-bottom: 3px;
+  font-weight: 500;
+  display: block;
+}
+
+.task-duration-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: white;
+  font-size: 12px;
+  box-sizing: border-box;
 }

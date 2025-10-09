@@ -1,13 +1,9 @@
 class ApplicSidebar {
-  /**
-   * applicMap: объект { id -> { id, displayText, asserts, displayValue } }
-   * $container: jQuery element
-   * rerender: optional callback, вызывается при изменениях, чтобы внешние компоненты перерендерили view/model
-   */
-  constructor(applicMap = {}, $container, rerender = () => {}) {
+  constructor(applicMap = {}, $container, rerender = () => {}, model = null) {
     this.applicMap = applicMap || {};
     this.$container = $container;
     this.rerender = typeof rerender === 'function' ? rerender : () => {};
+    this.model = model; // Добавляем ссылку на модель
     this.expandedId = null;
   }
 
@@ -16,7 +12,14 @@ class ApplicSidebar {
 
     const $list = $('<div>').addClass('applic-list');
 
-    Object.values(this.applicMap).forEach(applic => {
+    // Сортируем применимости по ID для удобства
+    const sortedApplics = Object.values(this.applicMap).sort((a, b) => {
+      const numA = parseInt(a.id.replace('app-', '')) || 0;
+      const numB = parseInt(b.id.replace('app-', '')) || 0;
+      return numA - numB;
+    });
+
+    sortedApplics.forEach(applic => {
       const $item = this.renderApplicItem(applic);
       $list.append($item);
 
@@ -49,13 +52,12 @@ class ApplicSidebar {
 
     // toggle editor
     $item.on('click', (e) => {
-      // avoid toggling when clicking drag handle or buttons inside
       if ($(e.target).closest('.applic-editor, .delete-btn, .save-applic-btn, .assert-editor').length) return;
       this.expandedId = (this.expandedId === applic.id) ? null : applic.id;
       this.render();
     });
 
-    // DnD: кладём несколько типов (JSON + simple id + text/plain) для совместимости
+    // DnD
     $item.on('dragstart', (event) => {
       const ev = event.originalEvent || event;
       try {
@@ -63,27 +65,16 @@ class ApplicSidebar {
         try { ev.dataTransfer.setData('text/applic', JSON.stringify(payloadObj)); } catch(e) {}
         try { ev.dataTransfer.setData('text/applic-id', String(applic.id)); } catch(e) {}
         try { ev.dataTransfer.setData('text/plain', String(applic.id)); } catch(e) {}
-        // дополнительный тип для возможности перемещать строки в sidebar
         try { ev.dataTransfer.setData('application/json', JSON.stringify(payloadObj)); } catch(e) {}
         ev.dataTransfer.effectAllowed = 'copy';
       } catch (err) {
         console.error('dragstart error in ApplicSidebar:', err);
       }
 
-      console.log('dragstart (handler): types=', Array.from(ev.dataTransfer.types || []));
-    try {
-      console.log('get text/applic (immediate):', ev.dataTransfer.getData('text/applic'));
-    } catch (err) {
-      console.log('getData не сработал (нормально в некоторых браузерах):', err.message);
-    }
-
       $item.addClass('dragging');
     });
 
     $item.on('dragend', () => $item.removeClass('dragging'));
-
-
-    
 
     return $item;
   }
@@ -109,7 +100,7 @@ class ApplicSidebar {
 
     $editor.append(
       $('<button>').addClass('btn btn-sm btn-outline-secondary btn-block mb-2 add-assert-btn')
-        .text('+ Добавить применимость')
+        .text('+ Добавить условие')
         .on('click', () => $assertsContainer.append(this.renderAssertEditor()))
     );
 
@@ -148,10 +139,7 @@ class ApplicSidebar {
           .attr('title', 'Удалить')
           .on('click', () => {
             if (confirm('Удалить эту применимость?')) {
-              delete this.applicMap[applic.id];
-              this.expandedId = null;
-              this.render();
-              try { this.rerender(); } catch (e) { console.error(e); }
+              this.deleteApplic(applic.id);
             }
           })
       ).append(
@@ -161,57 +149,83 @@ class ApplicSidebar {
       )
   }
 
+  createApplic() {
+    if (!this.model) {
+      console.error('Model not available for creating applicability');
+      return;
+    }
+
+    try {
+      // Используем метод модели для генерации нового ID
+      const newId = this.model.generateNewApplicId();
+      
+      const newApplic = {
+        id: newId,
+        displayText: '',
+        asserts: {},
+        displayValue: 'Новая применимость'
+      };
+      
+      // Добавляем через модель
+      this.model.addNewApplicability(newApplic);
+      
+      this.expandedId = newId;
+      this.render();
+      this.rerender();
+      
+    } catch (error) {
+      console.error('Error creating applicability:', error);
+      alert('Ошибка при создании применимости: ' + error.message);
+    }
+  }
+
   saveApplic(applic) {
-    // собираем значения из DOM: ищем editor, который открыт для this.expandedId
+    if (!this.model) {
+      console.error('Model not available for saving applicability');
+      return;
+    }
+
     const $editor = this.$container.find('.applic-editor').first();
     if (!$editor.length) return;
 
     const displayText = $editor.find('.applic-display-text').val();
-    applic.displayText = displayText;
-
-    // asserts
+    
+    // Собираем asserts
     const asserts = {};
     $editor.find('.assert-editor').each(function () {
       const prop = $(this).find('.assert-property').val();
       const val = $(this).find('.assert-value').val();
       if (prop && val) asserts[prop] = val;
     });
-    applic.asserts = asserts;
 
-    // пересчитать displayValue
-    if (applic.displayText) {
-      applic.displayValue = applic.displayText;
-    } else {
-      if (applic.asserts.serialno) {
-        applic.displayValue = `Серийный номер: ${applic.asserts.serialno}`;
-      } else if (applic.asserts.model) {
-        applic.displayValue = `Модель: ${applic.asserts.model}`;
-      } else if (applic.asserts.type) {
-        applic.displayValue = `Тип: ${applic.asserts.type}`;
-      } else {
-        applic.displayValue = applic.id;
-      }
-    }
+    // Обновляем через модель
+    this.model.updateApplicability(applic.id, {
+      displayText: displayText,
+      asserts: asserts
+    });
 
-    // Обновляем карту и реберендим
-    this.applicMap[applic.id] = applic;
+    this.expandedId = null;
     this.render();
-    try { this.rerender(); } catch (e) { console.error(e); }
+    this.rerender();
   }
 
-  createApplic() {
-    const id = 'app-' + Date.now().toString().slice(-6);
-    this.applicMap[id] = {
-      id,
-      displayText: '',
-      asserts: {},
-      displayValue: 'Новая применимость'
-    };
-    this.expandedId = id;
+  deleteApplic(applicId) {
+    if (!this.model) {
+      console.error('Model not available for deleting applicability');
+      return;
+    }
+
+    this.model.removeApplicability(applicId);
+    this.expandedId = null;
     this.render();
+    this.rerender();
   }
 
   addRerender(rerender) {
     if (typeof rerender === 'function') this.rerender = rerender;
+  }
+
+  setModel(model) {
+    this.model = model;
   }
 }

@@ -19,12 +19,12 @@
     <link rel="stylesheet" href="styles/style_sidebar.css" />
     <style>
         
-        table { 	margin-top: 50px; 
+        table { 	margin-top: 75px; 
         /* Достаточно места для фиктивных заголовков */width: 200%; 	
         min-width: 2000px;
         overflow-x: auto;
         margin-bottom: 20px; 	
-        border: 2px solid #dddddd; 
+        border: 2px solid #f9f9f9; 
         border-collapse: collapse; 
         border-color: #000000;
         box-sizing:  border-box;
@@ -92,8 +92,8 @@
             <div  class="tc-name-box notexist" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" id="tc-name-box-id">Таблица соответствия:</div> -->
         </div>
 
-        <button id="select-dataset-btn" class="button-toolbar" type="button" title="Выбрать модуль данных" style="margin-right:8px;">
-            Выбрать модуль данных
+        <button id="select-dataset-btn" class="button-toolbar" type="button" title="Выбрать модуль данных" style="margin-right:8px; margin-top: 0px; padding-top: 2px; padding-bottom: 2px; height: 28px;">
+          Выбрать модуль данных
         </button>
 
         <div class="btn-group" role="group">
@@ -203,7 +203,7 @@
       try {
         $selectBtn.prop('disabled', true).text('Загрузка...');
         const xmlString = await tcHandler.getDataset(uid);
-
+        
         // Инициализируем контроллер с полученным XML и включаем режим edit кнопки
         window.currentDatasetUid = uid;
         window.controller.init(xmlString);

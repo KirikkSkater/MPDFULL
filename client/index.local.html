@@ -1,238 +1,241 @@
 <!doctype html>
-
 <html>
 
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
   <script src="jquery/external/jquery/jquery.js"></script>
   <script type="text/javascript" src="jquery/jquery-ui.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="styles/style.css" />
+  <link rel="stylesheet" href="styles/style_toolbar.css" />
+  <link rel="stylesheet" href="styles/style_fake_headers.css" />
+  <link rel="stylesheet" href="table_temp_style.css" />
+  <link rel="stylesheet" href="styles/style_sidebar.css" />
+  <link rel="stylesheet" href="styles/modal_window.css" />
+  <link rel="stylesheet" href="bootstrap.min.css" />
 
-  <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"> -->
+  <style>
+    table {
+      margin-top: 75px;
+      width: 200%;
+      min-width: 2000px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      border: 2px solid #000;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
 
-  
-    <!-- <link rel="stylesheet" href="styles/style_table.css" /> -->
-    <link rel="stylesheet" href="styles/style.css" />
-    <link rel="stylesheet" href="styles/style_toolbar.css" />
-    <link rel="stylesheet" href="styles/style_fake_headers.css" />
-    <link rel="stylesheet" href="table_temp_style.css" />
-    <link rel="stylesheet" href="styles/style_sidebar.css" />
-    <style>
-        
-        table { 	margin-top: 50px; 
-        /* Достаточно места для фиктивных заголовков */width: 200%; 	
-        min-width: 2000px;
-        overflow-x: auto;
-        margin-bottom: 20px; 	
-        border: 2px solid #dddddd; 
-        border-collapse: collapse; 
-        border-color: #000000;
-        box-sizing:  border-box;
-        table-layout: fixed;
-        }
-            
-        a, a:visited{
-        color: #0000EE;
-        }
+    table th {
+      font-weight: bold;
+      padding: 5px;
+      background: #efefef;
+      border: 1px solid #000;
+    }
 
-        
-        table th {	font-weight: bold;	padding: 5px;	background: #efefef;	border: 1px solid #dddddd;border-color: #000000}
-        table td {
-        border: 1px solid #dddddd;
-        padding: 5px;
-        border-color: #000000}
-        .editable {
-            background-color: #f9f9f9;
-        }
-        .edit-mode input {
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .data-table.disable {
-            pointer-events: none; /* Disable all mouse events */
-			cursor: not-allowed;
-            opacity: 0.7; /* Make the table more gray */
-        }
-		
-		.data-table.disable p.click_style{
-            pointer-events: auto; /* Disable all mouse events */
-            opacity: 1; /* Make the table more gray */
-			cursor: pointer;
-		}
-		
-        .hidden-row {
-            display: none;
-        }
-        .compressed {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .bold-header {
-            font-weight: bold;
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        
-    </style>
-  
+    table td {
+      border: 1px solid #000;
+      padding: 5px;
+    }
+
+    .editable {
+      background-color: #f9f9f9;
+    }
+
+    .edit-mode input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .data-table.disable {
+      pointer-events: none;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .data-table.disable p.click_style {
+      pointer-events: auto;
+      opacity: 1;
+      cursor: pointer;
+    }
+
+    .hidden-row {
+      display: none;
+    }
+
+    .compressed {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bold-header {
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .toolbar-top {
+      margin: 10px;
+    }
+
+    .toolbar-top button {
+      margin-right: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-    <div id = "toolbar" role="toolbar" class="toolbar">
-        <div class="text-group">
-            
-            <!-- Кнопка открытия панели -->
-            <button class="button-toolbar" id="toggle-sidebar-btn">Применимости</button>
-            <!-- <div style="margin-left: 12; margin-right: 0;">БЛГ:</div>
-            <div id="awb-name-box-id" class="awb-name-box  notexist" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">БЛГ</div>
-            <div >связано с ТС:</div>
-            <div  class="tc-name-box notexist" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" id="tc-name-box-id">Таблица соответствия:</div> -->
-        </div>
+  <!-- Панель загрузки/выгрузки -->
 
-        <button id="select-dataset-btn" class="button-toolbar" type="button" title="Выбрать модуль данных" style="margin-right:8px;">
-            Выбрать модуль данных
-        </button>
-
-        <div class="btn-group" role="group">
-            <button disabled class="button-toolbar" id="preview-btn" type="button" title="Предпросмотр" style="margin-right: 5px; width: auto; padding-left: 4px; padding-right: 4px;">
-                <img src="images/hidden.png" id="hidden-icon" type='icon 'class="icon icon-preview" style="display: none;">
-                <img src="images/preview.png" id="preview-icon" type="icon" class="icon icon-preview" >    
-            </button>
-
-            
-
-            <button disabled class="button-toolbar edit" id="edit-btn" type="button">Редактировать</button>
-            <button disabled title="Отменить изменения" class="button-toolbar exit" id="exit-btn" type="button">Отмена</button>
-        </div>
-    </div>
-    
-
-
-    <div id="main-wrapper" style="display: flex; overflow-x: hidden; position: relative;">
-        <div id="applic-sidebar" class="sidebar hidden"></div>
-        
-        <div id="table-container" class="table-responsive table-wrapper disable"></div>
+  <div id="toolbar" role="toolbar" class="toolbar">
+    <div class="text-group">
+      <button class="button-toolbar" id="toggle-sidebar-btn">Применимости</button>
     </div>
 
-
-    <!-- <div id="table-container"></div> -->
-    <script src="src/core/XMLParser.js"></script>
-    <script src="src/core/SheduledController.js"></script>
-    <script src="src/core/HandlerTeamcenter.js"></script>
-    <script src="src/core/ScheduleTableModel.js"></script>
-    <script src="src/core/DModuleFactory.js"></script>
-    <!-- <script src="src/view/TableObjectsCell.js"></script> -->
-    <script src="src/view/Toolbar.js"></script>
-    <script src="src/view/ScheduleView.js"></script>
-    <script src="src/view/ApplicSidebar.js"></script>
     
-    <script>
-  (function() {
-    // Ждём, пока jQuery станет доступен
-    var parser  = new XMLParser();
-    var factory = new DModuleFactory();
-    var infoCode = '0B2A'; // Значение по умолчанию
 
-    // Создаём handler для Teamcenter API (base URL по умолчанию '')
-    var tcHandler = new HandlerTeamcenter('http://localhost:9090/'); // если нужен префикс, укажи '/api' и т.д.
-    window.tcHandler = tcHandler;
+    <div class="btn-group" role="group">
+      <input type="file" id="upload-xml" accept=".xml" style="display:none;">
+    <button id="select-dataset-btn" class="button-toolbar" type="button" title="Выбрать модуль данных"
+      style="margin-right:8px;">Выбрать модуль данных</button>
+    <button id="upload-btn" class="button-toolbar" style=" margin-right: 5px;">Загрузить XML</button>
+    <button id="download-btn" class="button-toolbar" style=" margin-right: 5px;">Выгрузить XML</button>
+      <div class="info-code-block">Инфокод: </div>
+      <div id="infoCodeId" class="info-code-block"></div>
+      <button disabled class="button-toolbar" id="preview-btn" type="button" title="Предпросмотр"
+        style="margin-right: 5px; width: auto; padding-left: 4px; padding-right: 4px;">
+        <img src="images/hidden.png" id="hidden-icon" class="icon icon-preview" style="display: none;">
+        <img src="images/preview.png" id="preview-icon" class="icon icon-preview">
+      </button>
+      <button disabled class="button-toolbar edit" id="edit-btn" type="button">Редактировать</button>
+      <button disabled title="Отменить изменения" class="button-toolbar exit" id="exit-btn" type="button">Отмена</button>
+    </div>
+  </div>
 
-    // Контроллер (пока без XML)
-    window.controller = new ScheduledController({
-      parser: parser,
-      factory: factory,
-      modelClass: ScheduleTableModel,
-      viewClass: ScheduleView,
-      $container: $('#table-container'),
-      infoCode: infoCode
-    });
+  <div id="main-wrapper" style="display: flex; overflow-x: hidden; position: relative;">
+    <div id="applic-sidebar" class="sidebar hidden"></div>
+    <div id="table-container" class="table-responsive table-wrapper disable"></div>
+  </div>
 
-    // Хранилище текущего uid
-    window.currentDatasetUid = null;
+  <script src="src/core/XMLParser.js"></script>
+  <script src="src/core/DndManager.js"></script>
+  <script src="src/core/SheduledController.js"></script>
+  <script src="src/core/HandlerTeamcenter.js"></script>
+  <script src="src/core/ScheduleTableModel.js"></script>
+  <script src="src/core/DModuleFactory.js"></script>
+  <script src="src/view/Toolbar.js"></script>
+  <script src="src/view/ScheduleView.js"></script>
+  <script src="src/view/ApplicSidebar.js"></script>
+  <script src="src/data/DictionariesTC.js"></script>
+  <script src="src/core/HandlerInfoCode.js"></script>
+  
+  <script src="bootstrap.min.js"></script>
+  <script src="bootstrap.bundle.min.js"></script>
+  
+  <script src="src/core/DmCodeModal.js"></script>
+  <script>
+    (function () {
+      var parser = new XMLParser();
+      var factory = new DModuleFactory();
+      var infoCode = '0B2A';
+      var tcHandler = new HandlerTeamcenter('http://10.16.6.3:9090/');
+      window.tcHandler = tcHandler;
 
-    // finishEditing: вызывается при подтверждении сохранения из toolbar
-    window.finishEditing = async function (shouldSave) {
-      if (!shouldSave) {
-        console.log("Изменения отменены");
-        return;
-      }
+      tcHandler.getDataset("uiddict")
+        .then(temp => DictionariesTC.load(temp))
+        .catch(err => console.error("Ошибка загрузки:", err));
 
-      if (!window.currentDatasetUid) {
-        alert('UID модуля данных не указан. Выберите модуль данных перед сохранением.');
-        return;
-      }
+      window.controller = new ScheduledController({
+        parser: parser,
+        factory: factory,
+        modelClass: ScheduleTableModel,
+        viewClass: ScheduleView,
+        $container: $('#table-container'),
+        infoCode: infoCode
+      });
 
-      try {
-        const xmlToSave = window.controller && window.controller.exportXML ? window.controller.exportXML() : null;
-        if (!xmlToSave) throw new Error('Нет XML для сохранения');
+      window.currentDatasetUid = null;
 
-        // блокируем кнопку
-        window.toolbar.editBtn.disabled = true;
-        window.toolbar.editBtn.textContent = 'Сохранение...';
+      window.finishEditing = async function (shouldSave) {
+        if (!shouldSave) return;
+        if (!window.currentDatasetUid) {
+          alert('UID модуля данных не указан');
+          return;
+        }
+        try {
+          const xmlToSave = window.controller.exportXML();
+          if (!xmlToSave) throw new Error('Нет XML для сохранения');
+          window.toolbar.editBtn.disabled = true;
+          window.toolbar.editBtn.textContent = 'Сохранение...';
+          await tcHandler.updateDataset(window.currentDatasetUid, xmlToSave);
+          alert('Сохранено успешно');
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка: ' + err.message);
+        } finally {
+          window.toolbar.editBtn.disabled = false;
+          window.toolbar.setEditMode(false);
+        }
+      };
 
-        await tcHandler.updateDataset(window.currentDatasetUid, xmlToSave);
+      window.controller.addfinishEditing(window.finishEditing);
+      window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
 
-        alert('Сохранено успешно');
-      } catch (err) {
-        console.error('Ошибка при сохранении dataset:', err);
-        alert('Ошибка при сохранении: ' + (err.message || err));
-      } finally {
-        // возвращаем кнопку обратно в режим "Редактировать"
-        window.toolbar.editBtn.disabled = false;
-        window.toolbar.setEditMode(false);
-      }
-    };
+      $('#select-dataset-btn').on('click', async function () {
+        const uid = prompt("Введите UID модуля данных:");
+        if (!uid) return;
+        try {
+          $(this).prop('disabled', true).text('Загрузка...');
+          const xmlString = await tcHandler.getDataset(uid);
+          window.currentDatasetUid = uid;
+          window.controller.init(xmlString);
+          window.controller.bindToolbar();
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка: ' + err.message);
+        } finally {
+          $(this).prop('disabled', false).text('Выбрать модуль данных');
+        }
+      });
 
-    window.controller.addfinishEditing(window.finishEditing);
+      // Загрузка XML
+      $('#upload-btn').on('click', function () {
+        $('#upload-xml').click();
+      });
 
-    window.toolbar = new Toolbar(
-      null,                // callbackGetDropFromTeamcenter (если не нужен)
-      window.finishEditing, // сюда передаём сохранение
-      (flag) => window.controller.setEditMode(flag), // твоя функция для таблицы
-      () => ""             // checkRes — пока пустая проверка
-    );
+      $('#upload-xml').on('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const xmlString = event.target.result;
+          window.controller.init(xmlString);
+          window.controller.bindToolbar();
+          window.currentDatasetUid = null;
+        };
+        reader.readAsText(file);
+      });
 
-    // Кнопка: выбрать модуль данных (prompt UID)
-    const $selectBtn = $('#select-dataset-btn');
-
-    $selectBtn.on('click', async function() {
-      const uid = prompt("Введите UID модуля данных (dataset uid):");
-      if (!uid) return;
-
-      try {
-        $selectBtn.prop('disabled', true).text('Загрузка...');
-        const xmlString = await tcHandler.getDataset(uid);
-
-        // Инициализируем контроллер с полученным XML и включаем режим edit кнопки
-        window.currentDatasetUid = uid;
-        window.controller.init(xmlString);
-        window.controller.bindToolbar();
-
-        // Включаем кнопку Сохранить
-        // $saveBtn.prop('disabled', false);
-
-      } catch (err) {
-        console.error('Ошибка при загрузке dataset:', err);
-        alert('Ошибка при загрузке данных: ' + (err.message || err));
-      } finally {
-        $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
-      }
-    });
-
-    // Кнопка сохранить — повесим на click — она вызывает window.finishEditing через confirm в toolbar flo
-
-    // Если нужно — можно также позволить загрузку тестового xml при старте (удалите/закомментируйте если не нужно)
-    // fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')
-    //   .then(res => res.text())
-    //   .then(xmlString => {
-    //       window.controller.init(xmlString);
-    //       window.controller.bindToolbar();
-    //       // не включаем save (т.к. нет uid)
-    //   }).catch(err => console.error('Ошибка при загрузке XML:', err));
-        })();
-    </script>
+      // Выгрузка XML
+      $('#download-btn').on('click', function () {
+        const xmlToSave = window.controller.exportXML();
+        if (!xmlToSave) {
+          alert('Нет XML для выгрузки');
+          return;
+        }
+        const blob = new Blob([xmlToSave], { type: "application/xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "export.xml";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    })();
+  </script>
 
 </body>
+
+</html>
