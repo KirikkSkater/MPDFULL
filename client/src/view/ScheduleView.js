@@ -13,7 +13,7 @@ const UNITS = [
 
 class ScheduleView {
   constructor(model, $container) {
-    this.model = model; // ScheduleTableModel instance
+    this.model = model; // ScheduleTableModel instance  //
     this.$container = $container; // jQuery div where table will be rendered
     this.$table = null;
 
