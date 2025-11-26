@@ -170,8 +170,8 @@
         if (!xmlToSave) throw new Error('Нет XML для сохранения');
 
         // Вызов API сохранения
-        document.getElementById('save-dataset-btn').disabled = true;
-        document.getElementById('save-dataset-btn').textContent = 'Сохранение...';
+        $saveBtn.prop('disabled', true);
+        // document.getElementById('save-dataset-btn').textContent = 'Сохранение...';
 
         await tcHandler.updateDataset(window.currentDatasetUid, xmlToSave);
 
@@ -180,10 +180,12 @@
         console.error('Ошибка при сохранении dataset:', err);
         alert('Ошибка при сохранении: ' + (err.message || err));
       } finally {
-        document.getElementById('save-dataset-btn').textContent = 'Сохранить';
-        document.getElementById('save-dataset-btn').disabled = false;
+        // document.getElementById('save-dataset-btn').textContent = 'Сохранить';
+        $saveBtn.prop('disabled', false);
       }
     };
+
+    
 
     // Кнопка: выбрать модуль данных (prompt UID)
     const $selectBtn = $('#select-dataset-btn');
@@ -221,6 +223,33 @@
       // напрямую вызовем finishEditing(true)
       window.finishEditing(true);
     });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
+    if(uid){
+      try {
+        tcHandler.getDataset(uid)
+        .then(xmlString => {
+            // Инициализируем контроллер с полученным XML
+            window.currentDatasetUid = uid;
+            window.controller.init(xmlString);
+            window.controller.bindToolbar();
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке dataset:', error);
+            $selectBtn.prop('disabled', false).text('Ошибка');
+        });
+
+        // Включаем кнопку Сохранить
+        $saveBtn.prop('disabled', false);
+
+      } catch (err) {
+        console.error('Ошибка при загрузке dataset:', err);
+        alert('Ошибка при загрузке данных: ' + (err.message || err));
+      } finally {
+        $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
+      }
+    }
 
     // Если нужно — можно также позволить загрузку тестового xml при старте (удалите/закомментируйте если не нужно)
     // fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')

@@ -131,7 +131,10 @@
             name="%mpdeApplication.TITLE"/>  
             
         <command id="com.irkut.tc.mpdeapplication.startserver"
-            name="start server"/>  
+            name="start server"/> 
+            
+        <command id="com.irkut.tc.mpdeapplication.openmd"
+            name="open MD"/>  
    </extension>	
 
 <!-- COMMANDS -->
@@ -150,7 +153,8 @@
       </handler-->
       
       
-      <handler	commandId="com.irkut.tc.mpdeapplication.startserver"		class="com.irkut.tc.mpdeditor.handlers.HandlerStartServer">
+      <handler	commandId="com.irkut.tc.mpdeapplication.startserver"		class="com.irkut.tc.mpdeditor.handlers.HandlerStartServer"></handler>
+      <handler	commandId="com.irkut.tc.mpdeapplication.openmd"		class="com.irkut.tc.mpdeditor.handlers.HandlerMPDObject">
       		
       </handler>
       
@@ -159,6 +163,8 @@
    <extension point="org.eclipse.ui.menus">
      <menuContribution locationURI="menu:org.eclipse.ui.main.menu?after=tools">
 		<command commandId="com.irkut.tc.mpdeapplication.startserver">
+            </command>
+        <command commandId="com.irkut.tc.mpdeapplication.openmd">
             </command>
      </menuContribution>
    

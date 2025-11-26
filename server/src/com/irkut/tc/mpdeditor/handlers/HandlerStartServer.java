@@ -1,41 +1,34 @@
 package com.irkut.tc.mpdeditor.handlers;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.EnumSet;
+
+import javax.servlet.DispatcherType;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.core.commands.AbstractHandler;
-import org.eclipse.jetty.server.Request;
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.core.commands.ExecutionEvent;
-import org.eclipse.core.commands.ExecutionException;
 
-import com.fasterxml.jackson.databind.ser.std.StdKeySerializers.Default;
-import com.irkut.tc.mpdeditor.Activator;
-import com.irkut.tc.mpdeditor.server.SparkServer;
+//import com.irkut.tc.mpdeditor.server.SparkServer;
 import com.irkut.tc.mpdeditor.util.HandlerDataset;
 import com.irkut.tc.mpdeditor.util.UpdateDataset;
 import com.teamcenter.rac.aifrcp.AIFUtility;
-import com.teamcenter.rac.common.health.JettyServerStarter;
 import com.teamcenter.rac.kernel.TCComponent;
 import com.teamcenter.rac.kernel.TCComponentDataset;
 import com.teamcenter.rac.kernel.TCComponentManager;
 import com.teamcenter.rac.kernel.TCException;
 import com.teamcenter.rac.kernel.TCPreferenceService;
 import com.teamcenter.rac.kernel.TCSession;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.EnumSet;
-
-import javax.management.RuntimeErrorException;
-import javax.servlet.*;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class HandlerStartServer extends AbstractHandler{
 
@@ -50,7 +43,8 @@ public class HandlerStartServer extends AbstractHandler{
 		        ServletContextHandler context = new ServletContextHandler();
 		        context.setContextPath("/");
 		        
-		        context.addFilter(MyCorsFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+		        FilterHolder filterHolder = new FilterHolder(MyCorsFilter.class);
+		        context.addFilter(filterHolder, "/*", EnumSet.of(DispatcherType.REQUEST));
 		        
 		        URL publicURL = HandlerStartServer.class.getResource("/public");
 		        if (publicURL != null) {
@@ -112,10 +106,10 @@ public class HandlerStartServer extends AbstractHandler{
 		            }
 		        }), "/getitem");
 		 
-		        ServletHolder holderGetDataset = new ServletHolder(new HandlerDataset());
+		        ServletHolder holderGetDataset = new ServletHolder("/getdataset", new HandlerDataset());
 		        context.addServlet(holderGetDataset, "/getdataset"); // getdataset?uid=(uid)
 		        
-		        ServletHolder holderUpdateDataset = new ServletHolder(new UpdateDataset());
+		        ServletHolder holderUpdateDataset = new ServletHolder("/updatedataset", new UpdateDataset());
 		        context.addServlet(holderUpdateDataset, "/updatedataset"); // getdataset?uid=(uid)
 		        
 		        ServletHolder defauldHolder = new ServletHolder("static", DefaultServlet.class);

@@ -74,7 +74,7 @@ class HandlerTeamcenter {
     const resp = await res.text().catch(() => null);
     return resp;
   }
-
+}
 
 // экспорт для старого кода, чтобы подключить через <script>
-window.HandlerTeamcenter = window.HandlerTeamcenter || HandlerTeamcenter;
+// window.HandlerTeamcenter = window.HandlerTeamcenter || HandlerTeamcenter;

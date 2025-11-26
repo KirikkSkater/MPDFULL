@@ -28,6 +28,8 @@ public class UpdateDataset extends AbstractDatasetHandler{
 	public void doPost(HttpServletRequest req, HttpServletResponse resp) {
 		
 		String uid = req.getParameter("uid");
+		
+		System.out.println("update dataset start ");
 		InputStream inputStream = null;
 		try {
 			inputStream = req.getInputStream();
@@ -50,6 +52,13 @@ public class UpdateDataset extends AbstractDatasetHandler{
 			}
 
 	        String requestBodyString = requestBody.toString();
+	        try {
+				updateDataset(uid, requestBodyString);
+			} catch (TCException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	        
 		}
 
         // Now, requestBody contains the POST request body
@@ -112,7 +121,7 @@ public class UpdateDataset extends AbstractDatasetHandler{
 								e.printStackTrace();
 							}
 							
-							componentDataset.setFiles(new String[] {"C:\\temp\\" + fileNames[0]}, new String[] {fileNames[0]});
+							componentDataset.setFiles(new String[] {"C:\\temp\\" + fileNames[0]}, new String[] {"CAEAnalysisData"});
 
 //							TCComponentDataset datasetNew = componentDataset.revise();
 //							datasetNew.removeFiles(fileNames[0]);

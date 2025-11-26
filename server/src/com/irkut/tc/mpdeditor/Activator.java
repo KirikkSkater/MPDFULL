@@ -4,7 +4,7 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
-import com.irkut.tc.mpdeditor.server.SparkServer;
+//import com.irkut.tc.mpdeditor.server.SparkServer;
 import com.teamcenter.rac.kernel.AbstractRACPlugin;
 import com.teamcenter.rac.services.IAspectService;
 import com.teamcenter.rac.services.IAspectUIService;
@@ -23,7 +23,7 @@ public class Activator extends AbstractRACPlugin {
 		
 		private static MPDEApplication application;
 		
-		private static SparkServer sparkServer= null;
+//		private static SparkServer sparkServer= null;
 		
 		public static MPDEApplication getApplication() {
 			if (application == null) {
@@ -58,7 +58,7 @@ public class Activator extends AbstractRACPlugin {
 		public void stop(BundleContext context) throws Exception {
 			plugin = null;
 			
-			sparkServer.stop();
+//			sparkServer.stop();
 			super.stop(context);
 		}
 
@@ -95,10 +95,10 @@ public class Activator extends AbstractRACPlugin {
 		}
 		public static void startSparkService() {
 			// TODO Auto-generated method stub
-			if (sparkServer == null) {
-				sparkServer = new SparkServer();
-			}
-			
+//			if (sparkServer == null) {
+//				sparkServer = new SparkServer();
+//			}
+//			
 		}
 
 }
