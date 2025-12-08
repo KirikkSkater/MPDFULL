@@ -1,0 +1,61 @@
+#dmCodeModal .modal-dialog {
+    max-width: 800px;
+}
+
+#dmCodeModal .form-group {
+    margin-bottom: 1rem;
+}
+
+#dmCodeModal .form-text {
+    font-size: 0.8rem;
+}
+
+.dmref-block {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: #f9f9f9;
+}
+
+.dmref-code-display {
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.dmref-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.dmref-controls .btn {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+}
+
+
+/* ---------- */
+
+/* Стили для модального окна изменения раздела */
+#changeSectionModal .modal-dialog {
+    max-width: 500px;
+}
+
+#sectionCombo {
+    font-size: 1em;
+    padding: 8px 12px;
+}
+
+/* Подсказка с существующими разделами */
+.section-hint {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-top: 5px;
+    max-height: 100px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
