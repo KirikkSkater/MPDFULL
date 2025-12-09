@@ -3,7 +3,10 @@ package com.irkut.tc.mpdeditor;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.http.HttpService;
 
+import com.irkut.tc.mpdeditor.util.JettyServer;
 //import com.irkut.tc.mpdeditor.server.SparkServer;
 import com.teamcenter.rac.kernel.AbstractRACPlugin;
 import com.teamcenter.rac.services.IAspectService;
@@ -48,6 +51,19 @@ public class Activator extends AbstractRACPlugin {
 		 */
 		public void start(BundleContext context) throws Exception {
 			super.start(context);
+//			ServiceReference<HttpService> ref = 
+//			        context.getServiceReference(HttpService.class);
+//			    HttpService httpService = context.getService(ref);
+//
+//			    // Регистрируем:
+//			    // - Внешний URL: /static/*  
+//			    // - Путь в bundle: /resource/public  
+//			    httpService.registerResources(
+//			        "/static",           // URL для браузера
+//			        "/src/resource/public",  // Путь внутри JAR
+//			        null                 // HttpContext (можно null)
+//			    );
+			
 			plugin = this;
 		}
 
@@ -58,6 +74,7 @@ public class Activator extends AbstractRACPlugin {
 		public void stop(BundleContext context) throws Exception {
 			plugin = null;
 			
+			JettyServer.getInstance().stop();
 //			sparkServer.stop();
 			super.stop(context);
 		}
@@ -92,13 +109,6 @@ public class Activator extends AbstractRACPlugin {
 		public IAspectUIService getUIService() {
 			// TODO Auto-generated method stub
 			return null;
-		}
-		public static void startSparkService() {
-			// TODO Auto-generated method stub
-//			if (sparkServer == null) {
-//				sparkServer = new SparkServer();
-//			}
-//			
 		}
 
 }

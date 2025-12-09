@@ -224,7 +224,7 @@
       };
 
       window.controller.addfinishEditing(window.finishEditing);
-      window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
+    //  window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
 
     
 
@@ -261,7 +261,6 @@
         a.click();
         URL.revokeObjectURL(url);
       });
-    })();
 
     $selectBtn.on('click', async function() {
       const uid = prompt("Введите UID модуля данных (dataset uid):");

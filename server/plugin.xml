@@ -134,7 +134,7 @@
             name="start server"/> 
             
         <command id="com.irkut.tc.mpdeapplication.openmd"
-            name="open MD"/>  
+            name="Открыть редактор MPD"/>  
    </extension>	
 
 <!-- COMMANDS -->
@@ -162,11 +162,31 @@
 
    <extension point="org.eclipse.ui.menus">
      <menuContribution locationURI="menu:org.eclipse.ui.main.menu?after=tools">
-		<command commandId="com.irkut.tc.mpdeapplication.startserver">
+		<!--command commandId="com.irkut.tc.mpdeapplication.startserver">
             </command>
         <command commandId="com.irkut.tc.mpdeapplication.openmd">
-            </command>
+            </command-->
      </menuContribution>
+     
+     <menuContribution locationURI="popup:org.eclipse.ui.popup.any?after=group.subscribe"> <!-- ?after=tools"> -->
+         <menu id="com.irkut.tc.mpd.popupmenu" label="Редактор MPD">
+         <command commandId="com.irkut.tc.mpdeapplication.openmd">
+            </command>
+          <!-- Контекстное меню для приложения "Менеджер структуры"  -->
+			<visibleWhen>
+		            <iterate ifEmpty="false">
+	            	<and>
+		                 <adapt type="com.teamcenter.rac.kernel.TCComponent">
+			                  <test property="com.teamcenter.rac.kernel.TCComponent.typeClass" value="C3D_ItemS1000D4,C3D_ItemS1000D4Revision" />
+			                  
+		                 </adapt>
+		             </and>
+               
+		            </iterate>        	
+            	</visibleWhen>
+		</menu>
+         
+	  </menuContribution>
    
    </extension>  
       

@@ -2217,6 +2217,158 @@ removeRowViews(rowIndex) {
       }
   }
 }
+
+
+/* удалиени таблицы*/
+
+
+clearContext() {
+  console.log('Clearing ScheduleView context...');
+  
+  // 1. Удаляем все активные представления
+  this.activeViews.forEach(view => {
+      try {
+          if (view && typeof view.destroy === 'function') {
+              view.destroy();
+          }
+      } catch (err) {
+          console.error('Error destroying view:', err);
+      }
+  });
+  this.activeViews.clear();
+  
+  // 2. Удаляем таблицу из DOM
+  if (this.$table) {
+      this.$table.remove();
+      this.$table = null;
+  }
+  
+  // 3. Очищаем обработчики событий (кроме основных, зарегистрированных в конструкторе)
+  // Удаляем все обработчики, привязанные к контейнеру, кроме базовых
+  this.$container.off('.scheduleview');
+  
+  // 4. Очищаем кешированные данные
+  this.headers = [];
+  
+  // 5. Закрываем открытые модальные окна
+  this.closeAllModals();
+  
+  // 6. Очищаем временные данные
+  this.cleanupTemporaryData();
+  
+  console.log('ScheduleView context cleared');
+}
+
+/**
+* Закрывает все открытые модальные окна
+*/
+closeAllModals() {
+  // Закрываем Bootstrap модальные окна
+  $('.modal').modal('hide');
+  
+  // Удаляем модальные окна, созданные нашим кодом
+  $('.modal-backdrop').remove();
+  $('body').removeClass('modal-open');
+  
+  // Удаляем кастомные модальные окна
+  $('.custom-modal, .context-menu, .task-context-menu').remove();
+  
+  // Закрываем DmCodeModal если он открыт
+  if (this.dmCodeModal && typeof this.dmCodeModal.close === 'function') {
+      this.dmCodeModal.close();
+  }
+}
+
+/**
+* Очищает временные данные
+*/
+cleanupTemporaryData() {
+  // Очищаем временные переменные
+  this.dragSourceRow = null;
+  this.dragTargetRow = null;
+  
+  // Сбрасываем состояние редактирования
+  this.editingElement = null;
+  
+  // Очищаем выбранные элементы
+  $('.selected-task, .selected-row').removeClass('selected-task selected-row');
+  
+  // Удаляем временные элементы
+  $('.temp-highlight, .drag-placeholder, .drop-indicator').remove();
+}
+
+/**
+* Сбрасывает состояние при переключении режимов редактирования
+*/
+resetViewState() {
+  // Сбрасываем все интерактивные состояния
+  this.isDragging = false;
+  this.isEditing = false;
+  this.isSelecting = false;
+  
+  // Удаляем выделение текста
+  if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+  }
+  
+  // Скрываем контекстные меню
+  $('.context-menu, .submenu').remove();
+  
+  // Сбрасываем фокус
+  $(document.activeElement).blur();
+}
+
+// // Обновляем метод renderTaskTable, чтобы он начинался с очистки контекста:
+// renderTaskTable() {
+//   // Очищаем контекст перед рендерингом новой таблицы
+//   this.clearContext();
+  
+//   console.log('Full render with clean context');
+  
+//   // Создаем новую таблицу
+//   this.$table = $('<table>', { class: 'table table-bordered schedule-table' });
+  
+//   // ... остальной существующий код метода renderTaskTable ...
+// }
+
+// Обновляем метод updateView, чтобы очищал контекст при смене режима:
+updateView(isEditMode) {
+  // Очищаем контекст перед сменой режима
+  this.clearContext();
+  
+  this.editable = isEditMode;
+  this.render();
+  this.setEditable(isEditMode);
+}
+
+// Добавляем метод для ручной очистки (может вызываться извне):
+destroy() {
+  console.log('Destroying ScheduleView...');
+  
+  // 1. Отписываемся от изменений модели
+  if (typeof this._unsubscribeModel === 'function') {
+      this._unsubscribeModel();
+      this._unsubscribeModel = null;
+  }
+  
+  // 2. Полностью очищаем контекст
+  this.clearContext();
+  
+  // 3. Удаляем все обработчики событий
+  this.$container.off();
+  
+  // 4. Очищаем ссылки
+  this.model = null;
+  this.$container = null;
+  this.dmCodeModal = null;
+  
+  // 5. Удаляем все дочерние элементы из контейнера
+  this.$container.empty();
+  
+  console.log('ScheduleView destroyed');
+}
+
+
   /**
  * Фокусируется на поле примечания
  */

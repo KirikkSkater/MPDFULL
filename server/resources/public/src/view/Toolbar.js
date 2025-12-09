@@ -163,7 +163,7 @@ class Toolbar{
             this.editBtn.textContent = 'Сохранить';
 
             this.previewBtn.disabled = false;
-            this.setPreviewButton(false);
+          //  this.setPreviewButton(false);
 
         }else{
             this.editBtn.classList.remove('save');
@@ -171,7 +171,7 @@ class Toolbar{
             this.editBtn.textContent = 'Редактировать';
 
             this.previewBtn.disabled = true;
-            this.setPreviewButton(true); // TODO: удалить их скорее всего лишние вызовы
+           // this.setPreviewButton(true); // TODO: удалить их скорее всего лишние вызовы
         }
     }
 
@@ -181,11 +181,11 @@ class Toolbar{
         if (flag){
             this.previewBtn.classList.add("preview");
             hiddenIcon.style.display = 'block';
-            previewIcon.style.display = 'none';
+         //   previewIcon.style.display = 'none';
             // TODO: icon
         }else{
             this.previewBtn.classList.remove("preview");
-            previewIcon.style.display = 'block';
+           // previewIcon.style.display = 'block';
             hiddenIcon.style.display = 'none';
             // TODO: icon
         }

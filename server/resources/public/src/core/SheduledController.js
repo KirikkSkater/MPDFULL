@@ -51,6 +51,8 @@ class ScheduledController {
 
     //TODO: удалить старое View
     // Вью
+    if (this.view)
+      this.view.destroy();
     this.view = new this.viewClass(this.model, this.$container);
     this.view.render();
     this.view.setEditable(false);
