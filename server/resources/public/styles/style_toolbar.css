@@ -193,5 +193,26 @@
 /* Контейнер для контента */
 #main-wrapper {
     margin-top: 40px !important;
+    bottom: 0 !important;
     transition: margin-top 0.3s ease;
+}
+
+.preview-hidden {
+    display: none !important;
+}
+
+
+
+.preview-mode select,
+.preview-mode input,
+.preview-mode button.edit-mode-btn {
+    opacity: 0.6;
+    pointer-events: none;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+/* Стили для тегов применимости в режиме предпросмотра */
+.preview-mode .applic-tag .delete-applic {
+    display: none;
 }

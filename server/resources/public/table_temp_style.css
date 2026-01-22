@@ -7,14 +7,14 @@ table {
 
 #main-wrapper {
   display: flex;
-  height: 100vh; /* Занимаем всю высоту окна */
-  overflow: hidden; /* Отключаем скролл контейнера */
+  height: calc(100vh - 40px) !important; /* Занимаем всю высоту окна */
+  overflow: hidden;
 }
 
 html, body {
   height: 100%;
   margin: 0;
-  overflow: hidden; /* Убираем скролл всей страницы */
+  overflow: hidden;
 }
 
 table.disable {
@@ -46,16 +46,6 @@ table.disable {
 .table-header th, .sub-header-row th {
   position: sticky;
   border-bottom: 1px solid #f9f9f9;
-}
-
-.applic-text {
-    pointer-events: none;
-    user-select: none;
-    font-size: 0.75em;
-    color: #777;
-    margin-top: 2px;
-    white-space: pre-wrap;
-    word-break: break-all;
 }
 
 .editable-cell .editable-text {
@@ -217,29 +207,7 @@ table.disable {
   /* white-space: nowrap; */
 }
 
-/* Базовый стиль для тега применимости */
-.applic-tag {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 3px;
-  padding: 3px 6px;
-  margin: 2px 4px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.85em;
-  color: #495057;
-  border-left: 2px solid rgb(255, 85, 85);
-}
 
-/* Стиль для текста применимости */
-.applic-tag .applic-text {
-    margin-right: 5px;
-}
-
-/* Стиль для кнопки удаления */
-.applic-tag {
-    
-}
 
 
 /* Специфичный стиль для тегов в limit */
@@ -524,16 +492,16 @@ table.disable {
 .work-area-group-block {
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  /* padding: 8px; */
+  padding: 2px;
   margin-bottom: 10px;
   background-color: #f8f9fa;
 }
 
 .work-area-group-header {
-  display: flex;
+  /* display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 6px; */
 }
 
 /* Контейнер содержимого группы */
@@ -892,10 +860,10 @@ table.disable {
   outline: none;
 }
 
-.remarks-text[contenteditable="true"]:focus {
+/* .remarks-text[contenteditable="true"]:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
+} */
 
 /* В режиме просмотра скрываем рамку у нередактируемых полей */
 .disable .remarks-text {
@@ -1094,31 +1062,19 @@ table.disable {
   margin-bottom: 4px;
 }
 
-.applic-tag {
-  display: inline-flex;
-  align-items: center;
-  background-color: #e9ecef;
-  border: 1px solid #dee2e6;
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-size: 0.8em;
-  margin-right: 4px;
-  max-width: 100%;
-}
-
-.applic-text {
+/* .applic-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
-}
+} */
 
 /* Стили для примечаний */
 .remarks-block {
   margin-top: 6px;
   padding-top: 4px;
   border-top: 1px dashed #dee2e6;
-} 
+}
 
 .remarks-label {
   font-weight: bold;
@@ -1200,4 +1156,91 @@ table.disable {
   background-color: #f8f9fa;
   color: #212529;
   border: 1px solid #dee2e6;
+}
+
+
+/* RqmtSourceView стили */
+.rqmt-source-groups-container {
+    padding: 5px;
+}
+
+.rqmt-source-block {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+}
+
+.rqmt-source-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.rqmt-source-select-container {
+    flex: 1;
+}
+
+.rqmt-source-select-container select {
+    font-size: 12px;
+    padding: 4px 8px;
+    height: 30px !important;
+}
+
+.rqmt-source-criticality-container {
+    padding: 4px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+.rqmt-source-criticality-display {
+    padding: 5px;
+    min-height: 20px;
+    color: #495057;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Кнопки */
+.rqmt-source-block .btn {
+    font-size: 12px;
+    padding: 3px 8px;
+}
+
+.rqmt-source-block .btn-icon {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Модальное окно */
+.criticality-checkbox-list .form-check {
+    padding: 8px;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.criticality-checkbox-list .form-check:last-child {
+    border-bottom: none;
+}
+
+.criticality-checkbox-list .form-check-label {
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.criticality-checkbox-list .form-check-input {
+    margin-right: 8px;
+}
+
+.modal-footer .btn-remove::before{
+  content: '' !important;
 }

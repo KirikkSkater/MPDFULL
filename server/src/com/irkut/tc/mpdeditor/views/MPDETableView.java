@@ -39,6 +39,7 @@ import com.teamcenter.rac.kernel.TCException;
 import com.teamcenter.rac.kernel.TCPreferenceService;
 import com.teamcenter.rac.kernel.TCSession;
 import com.teamcenter.rac.views.AbstractRACView;
+
 public class MPDETableView extends ViewPart implements IUpdaterInfoCode
 { // TODO: перенести всё в формочку и UPdaterInfoCode
 	

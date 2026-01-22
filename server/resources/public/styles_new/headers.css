@@ -1,0 +1,74 @@
+
+
+.block-header {
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 2px 2px;
+    /* min-height: 32px;
+    width: 100%;
+    padding: 4px 8px;
+    margin-bottom: 6px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    box-sizing: border-box; */
+    justify-content: space-between;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+
+
+.applic-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e9ecef;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    font-size: 0.85em;
+    /* border-radius: 12px; Скругленные края как у тегов */
+    padding: 2px 2px 2px 2px;
+    font-size: 0.8em;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    max-width: 200px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    gap: 6px; /* Отступ между текстом и кнопкой */
+    line-height: 1.2;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+
+.applic-text-container {
+    flex: 1;
+    min-width: 0; /* Критически важно для text-overflow */
+    overflow: hidden;
+}
+
+.applic-text {
+    display: block;
+    /* white-space: nowrap; */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* font-size: 12px; */
+    /* font-weight: 500; */
+    color: #495057;
+    line-height: 1.2;
+}
+
+.btn-remove.delete-applic {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}

@@ -17,6 +17,8 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 
 import com.irkut.tc.mpdeditor.handlers.HandlerStartServer;
 import com.irkut.tc.mpdeditor.handlers.MyCorsFilter;
@@ -48,9 +50,40 @@ public class JettyServer implements AutoCloseable {
 
         server.addConnector(connector);
 
+        
+        Bundle bundle = FrameworkUtil.getBundle(getClass());
+        
+        URL resourceUrl = bundle.getEntry("resources/public");
+        if (resourceUrl == null) {
+            resourceUrl = bundle.getResource("public"); // пробуем без resources/
+        }
+        
+        // Вариант 2: Если URL не найден, пробуем через class loader
+        if (resourceUrl == null) {
+            resourceUrl = getClass().getClassLoader().getResource("public");
+        }
+        if (resourceUrl == null) {
+            throw new RuntimeException("Cannot locate static resources");
+        }
+
+        System.out.println("Using resource URL: " + resourceUrl.toString());
+        System.out.println("URL protocol: " + resourceUrl.getProtocol());
+
+        Resource baseResource = null;
+        try {
+			baseResource = Resource.newResource(resourceUrl);
+			
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
+        
+        if(baseResource != null)
+        	context.setBaseResource(baseResource);
         
         FilterHolder filterHolder = new FilterHolder(MyCorsFilter.class);
         context.addFilter(filterHolder, "/*", EnumSet.of(DispatcherType.REQUEST)); // TODO: может тут сделать только с локал хоста
@@ -75,16 +108,28 @@ public class JettyServer implements AutoCloseable {
         ServletHolder holderUpdateDataset = new ServletHolder("/updatedataset", new UpdateDataset());
         context.addServlet(holderUpdateDataset, "/updatedataset"); // getdataset?uid=(uid)
         
-        ServletHolder defauldHolder = new ServletHolder("static", DefaultServlet.class);
-        defauldHolder.setInitParameter("dirAllowed", "true");
-        defauldHolder.setInitParameter("pathInfoOnly", "true");
-        context.addServlet(defauldHolder, "/static/*");
+//        ServletHolder defauldHolder = new ServletHolder("static", DefaultServlet.class);
+//        defauldHolder.setInitParameter("dirAllowed", "true");
+//        defauldHolder.setInitParameter("pathInfoOnly", "true");
+//        context.addServlet(defauldHolder, "/static/*");
+        ServletHolder holder = new ServletHolder("default", DefaultServlet.class);
+        holder.setInitParameter("dirAllowed", "false");
+        holder.setInitParameter("pathInfoOnly", "true");
+        holder.setInitParameter("redirectWelcome", "true");
+        holder.setInitOrder(1);
         
+        // Маппинг для всех статических файлов
+        context.addServlet(holder, "/static/*");
+
      
 
 		
 //		        server.setHandler(resource_handler);
         server.setHandler(context);
+        
+        
+        
+        
         
 	}
 	

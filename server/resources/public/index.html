@@ -15,8 +15,13 @@
   <link rel="stylesheet" href="bootstrap.min.css" />
   <link rel="stylesheet" href="styles_new/stylebase.css" />
   <link rel="stylesheet" href="styles/style_toolbar.css" />
+  <link rel="stylesheet" href="styles_new/headers.css" />
 
   <style>
+
+    .body{
+      /* overflow: hidden; */
+    }
     table {
       margin-top: 0px;
       width: 200%;
@@ -34,6 +39,54 @@
       background: #efefef;
       border: 1px solid #000;
     }
+
+    #table-container {
+      scrollbar-width: auto !important; /* Для Firefox */
+      -ms-overflow-style: auto !important; /* Для IE/Edge */
+    }
+
+    #table-container::-webkit-scrollbar {
+      width: 10px !important;
+      height: 10px !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    #table-container::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+
+    #table-container::-webkit-scrollbar-thumb {
+      background: #888 !important;
+      border-radius: 4px !important;
+      border: 3px solid #f1f1f1 !important;
+    }
+
+    #table-container::-webkit-scrollbar-thumb:hover {
+      background: #555 !important;
+    }
+
+    /* Убедитесь, что скроллбар не скрыт где-то в глобальных стилях */
+    *::-webkit-scrollbar {
+      display: block !important; /* Убрать если есть display: none */
+    }
+
+    #table-container {
+      scrollbar-color: #b9c4eb #e9ecef !important; /* Firefox */
+    }
+
+#table-container::-webkit-scrollbar-thumb {
+  background-color: #a4a4a4 !important;
+  box-shadow: inset 2 2 2px rgba(0,0,0,0.3) !important;
+}
+
+#table-container::-webkit-scrollbar-track {
+  background-color: #e9ecef !important;
+  box-shadow: inset 2 2 2px rgba(0,0,0,0.1) !important;
+}
+
 
     table td {
       border: 1px solid #000;
@@ -129,8 +182,8 @@
         <div class="toolbar-actions">
             <button disabled class="btn btn-sm btn-outline-primary preview-btn toolbar-blue" id="preview-btn" 
                     type="button" title="Предпросмотр">
-                <img src="images/hidden.png" id="hidden-icon" class="icon icon-preview" style="display: none;">
-                <img src="images/preview.png" class="icon-btn">
+                <img src="images/hidden.png" id="hidden-icon" class="icon icon-btn" style="display: none;">
+                <img src="images/preview.png" id="preview-icon" class="icon icon-btn">
             </button>
             <button disabled class="btn btn-sm btn-outline-primary toolbar-blue edit" id="edit-btn" type="button">
                 <span class="btn-text">Редактировать</span>
@@ -143,7 +196,7 @@
     </div>
 </div>
 
-  <div id="main-wrapper" style="display: flex; overflow-x: hidden; position: relative;">
+  <div id="main-wrapper" style="display: flex; position: relative;">
     <div id="applic-sidebar" class="sidebar hidden"></div>
     <div id="table-container" class="table-responsive table-wrapper disable"></div>
   </div>
@@ -166,6 +219,9 @@
   <script src="src/view/TaskDurationView.js"></script>
   <script src="src/view/LimitView.js"></script>
   <script src="src/view/RqmtSourceView.js"></script>
+  <script src="src/view/AccessPointView.js"></script>
+  <script src="src/view/ZoneView.js"></script>
+  <script src="src/view/PersonalView.js"></script>
   
   
   <script src="bootstrap.min.js"></script>
@@ -180,6 +236,7 @@
 
       const $selectBtn = $('#select-dataset-btn');
       const $saveBtn = $('#edit-btn');
+
       var tcHandler = new HandlerTeamcenter('http://localhost:9090/');
       window.tcHandler = tcHandler;
 
@@ -198,7 +255,7 @@
 
       window.currentDatasetUid = null;
 
-      window.finishEditing = async function (shouldSave) {
+       window.finishEditing = async function (shouldSave) {
         if (!shouldSave) return;
         if (!window.currentDatasetUid) {
           alert('UID модуля данных не указан');
@@ -224,30 +281,49 @@
       };
 
       window.controller.addfinishEditing(window.finishEditing);
-    //  window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
+      // window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
 
-    
+      $('#select-dataset-btn').on('click', async function () {
+        const uid = prompt("Введите UID модуля данных:");
+        if (!uid) return;
+        try {
+          $(this).prop('disabled', true).text('Загрузка...');
+          const xmlString = await tcHandler.getDataset(uid);
+          window.currentDatasetUid = uid;
+          window.controller.init(xmlString);
+          // window.controller.bindToolbar();
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка: ' + err.message);
+        } finally {
+          $(this).prop('disabled', false).text('Выбрать модуль данных');
+        }
+      });
 
-    // Кнопка: выбрать модуль данных (prompt UID)
-
-    $('#upload-btn').on('click', function () {
+      // Загрузка XML
+      $('#upload-btn').on('click', function () {
+        if (window.controller.handleSaveClick()){
+          window.controller.destroy();
+          // window.controller.setEditMode(false);
         $('#upload-xml').click();
-    });
+        }
+      });
 
-    $('#upload-xml').on('change', function (e) {
+      $('#upload-xml').on('change', function (e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function (event) {
           const xmlString = event.target.result;
           window.controller.init(xmlString);
-          window.controller.bindToolbar();
+          // window.controller.bindToolbar();
           window.currentDatasetUid = null;
         };
         reader.readAsText(file);
       });
 
-    $('#download-btn').on('click', function () {
+      // Выгрузка XML
+      $('#download-btn').on('click', function () {
         const xmlToSave = window.controller.exportXML();
         if (!xmlToSave) {
           alert('Нет XML для выгрузки');
@@ -262,38 +338,8 @@
         URL.revokeObjectURL(url);
       });
 
-    $selectBtn.on('click', async function() {
-      const uid = prompt("Введите UID модуля данных (dataset uid):");
-        if (!uid) return;
-        try {
-        $selectBtn.prop('disabled', true).text('Загрузка...');
-          const xmlString = await tcHandler.getDataset(uid);
-          window.currentDatasetUid = uid;
-          window.controller.init(xmlString);
-          window.controller.bindToolbar();
-
-        // Включаем кнопку Сохранить
-        $saveBtn.prop('disabled', false);
-
-        } catch (err) {
-          console.error(err);
-          alert('Ошибка: ' + err.message);
-        } finally {
-        $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
-        }
-      });
-
-    // Кнопка сохранить — повесим на click — она вызывает window.finishEditing через confirm в toolbar flow
-    // $saveBtn.on('click', function() {
-    //   // инициируем flow сохранения: показать confirm similar to edit toolbar
-    //   var doSave = confirm('Отправить изменения в Teamcenter?');
-    //   if (!doSave) return;
-    //   // напрямую вызовем finishEditing(true)
-    //   window.finishEditing(true);
-    // });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const uid = urlParams.get('uid');
+      const urlParams = new URLSearchParams(window.location.search);
+      const uid = urlParams.get('uid');
     if(uid){
       try {
         tcHandler.getDataset(uid)
@@ -301,7 +347,8 @@
             // Инициализируем контроллер с полученным XML
             window.currentDatasetUid = uid;
           window.controller.init(xmlString);
-          window.controller.bindToolbar();
+          window.currentDatasetUid = uid;
+          // window.controller.bindToolbar();
         })
         .catch(error => {
             console.error('Ошибка при загрузке dataset:', error);
@@ -318,15 +365,6 @@
         $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
       }
     }
-
-    // Если нужно — можно также позволить загрузку тестового xml при старте (удалите/закомментируйте если не нужно)
-    // fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')
-    //   .then(res => res.text())
-    //   .then(xmlString => {
-    //       window.controller.init(xmlString);
-    //       window.controller.bindToolbar();
-    //       // не включаем save (т.к. нет uid)
-    //   }).catch(err => console.error('Ошибка при загрузке XML:', err));
     })();
   </script>
 

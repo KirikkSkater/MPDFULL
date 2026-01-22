@@ -47,14 +47,14 @@ class HandlerInfoCode {
         $headerRow.append(`
           <th class="rotated-header" rowspan="2" style="width: 2%"><div class="rotated-content">КОД ИЗМЕНЕНИЯ</div></th>
           <th class="normal-header" rowspan="2" style="width: 4%"><div class="normal-content">НОМЕР ЗАДАЧИ ИДПТО</div></th>
-          <th class="rotated-header" rowspan="2" style="width: 3%"><div class="rotated-content">ДОКУМЕНТ ИСХОДНЫЙ</div></th>
-          <th class="rotated-header" rowspan="2" style="width: 4%"><div class="rotated-content">ЗОНА</div></th>
-          <th class="rotated-header" rowspan="2" style="width: 7%"><div class="rotated-content">ДОСТУП</div></th>
+          <th class="rotated-header" rowspan="2" style="width: 6%"><div class="rotated-content">ДОКУМЕНТ ИСХОДНЫЙ</div></th>
+          <th class="rotated-header" rowspan="2" style="width: 5%"><div class="rotated-content">ЗОНА</div></th>
+          <th class="rotated-header" rowspan="2" style="width: 6%"><div class="rotated-content">ДОСТУП</div></th>
           <th class="rotated-header" rowspan="2" style="width: 3%"><div class="rotated-content">КОД ЗАДАЧИ</div></th>
-          <th class="normal-header" rowspan="2" style="width: 11%"><div class="normal-content">ОПИСАНИЕ ЗАДАЧИ</div></th>
+          <th class="normal-header" rowspan="2" style="width: 10%"><div class="normal-content">ОПИСАНИЕ ЗАДАЧИ</div></th>
           <th class="normal-header" rowspan="2" style="width: 11%"><div class="normal-content">Порог начала/Переодичность</div></th>
-          <th class="rotated-header" rowspan="2" style="width: 8%"><div class="rotated-content">AMTOSS</div></th>
-          <th class="rotated-header" style="width: 9%">
+          <th class="rotated-header" rowspan="2" style="width: 7%"><div class="rotated-content">AMTOSS</div></th>
+          <th class="rotated-header" style="width: 7%">
           <div class="rotated-content">КОЛ-ВО ЧЕЛОВЕК<br>/ Специализация</div>
           </th>
           <th class="rotated-header" style="width: 5%"><div class="rotated-content">Трудоёмкость</div></th>

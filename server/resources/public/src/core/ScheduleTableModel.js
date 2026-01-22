@@ -186,45 +186,57 @@ class ScheduleTableModel {
             }
 
             task.workAreaLocationGroups = [];
-    $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
-        const $group = $(group);
-        const groupData = {
-            applicRefId: $group.attr('applicRefId') || null,
-            zones: [],
-            accessPoints: []
-        };
-
-        // Определяем тип группы по содержимому
-        const hasZones = $group.find('zoneRef').length > 0;
-        const hasAccessPoints = $group.find('accessPointRef').length > 0;
-        
-        groupData.type = hasZones ? 'zone' : 'access';
-
-        // Парсим зоны
-        $group.find('zoneRef').each((j, zone) => {
-            const $zone = $(zone);
-            groupData.zones.push({
-                zoneNumber: $zone.attr('zoneNumber') || ''
+            $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
+                const $group = $(group);
+                const groupData = {
+                    applicRefId: $group.attr('applicRefId') || null,
+                    zones: [],
+                    accessPoints: []
+                };
+    
+                // Определяем тип группы по содержимому
+                const hasZones = $group.find('zoneRef').length > 0;
+                const hasAccessPoints = $group.find('accessPointRef').length > 0;
+                
+                // Если есть и то, и другое - считаем смешанной, но лучше разделить
+                if (hasZones && hasAccessPoints) {
+                    // Это смешанная группа, разделяем на две логические группы
+                    // Но в XML это одна группа, так что пока оставляем как есть
+                    console.warn('Mixed zone/access group found at row', i);
+                }
+                
+                // По умолчанию определяем по первому найденному элементу
+                groupData.type = hasZones ? 'zone' : 'access';
+    
+                // Парсим зоны
+                $group.find('zoneRef').each((j, zone) => {
+                    const $zone = $(zone);
+                    groupData.zones.push({
+                        zoneNumber: $zone.attr('zoneNumber') || ''
+                    });
+                });
+    
+                // Парсим точки доступа (без accessPointTypeValue)
+                $group.find('accessPointRef').each((j, access) => {
+                    const $access = $(access);
+                    groupData.accessPoints.push({
+                        accessPointNumber: $access.attr('accessPointNumber') || ''
+                        // Убрали accessPointTypeValue
+                    });
+                });
+    
+                // Парсим примечания (workArea внутри workLocation)
+                const $workLocation = $group.find('workLocation');
+                if ($workLocation.length) {
+                    const $workArea = $workLocation.find('workArea');
+                    if ($workArea.length) {
+                        if (!groupData.remarks) groupData.remarks = {};
+                        groupData.remarks.text = $workArea.text().trim();
+                    }
+                }
+    
+                task.workAreaLocationGroups.push(groupData);
             });
-        });
-
-        // Парсим точки доступа
-        $group.find('accessPointRef').each((j, access) => {
-            const $access = $(access);
-            groupData.accessPoints.push({
-                accessPointNumber: $access.attr('accessPointNumber') || '',
-                accessPointTypeValue: $access.attr('accessPointTypeValue') || ''
-            });
-        });
-
-        const $workArea = $group.find('workLocation workArea');
-        if ($workArea.length) {
-            if (!groupData.remarks) groupData.remarks = {};
-            groupData.remarks.text = $workArea.text().trim();
-        }
-
-        task.workAreaLocationGroups.push(groupData);
-    });
 
 
             // Блоки limit
@@ -272,8 +284,16 @@ class ScheduleTableModel {
                 const $src = $(src);
                 const sourceData = {
                     sourceOfRqmt: $src.attr('sourceOfRqmt') || '',
-                    sourceCriticality: $src.find('sourceType').attr('sourceCriticality') || ''
+                    sourceCriticality: []  // МАССИВ вместо строки!
                 };
+                
+                // Собираем ВСЕ sourceCriticality
+                $src.find('sourceType').each((j, st) => {
+                    const criticality = $(st).attr('sourceCriticality');
+                    if (criticality) {
+                        sourceData.sourceCriticality.push(criticality);
+                    }
+                });
                 task.rqmtSources.push(sourceData);
             });
 
@@ -1310,14 +1330,14 @@ validateLimit(rowIndex, limitIndex) {
     return true;
 }
 
-addRqmtSource(rowIndex, sourceData) {
+addRqmtSource(rowIndex, sourceData = { sourceOfRqmt: '', sourceCriticality: [] }) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
     
     if (!this.tasks[rowIndex].rqmtSources) {
         this.tasks[rowIndex].rqmtSources = [];
     }
     
-    this.tasks[rowIndex].rqmtSources.push(sourceData);
+    this.tasks[rowIndex].rqmtSources.push({...sourceData});
     
     // Добавляем в XML
     const taskNode = this.taskNodes[rowIndex];
@@ -1328,13 +1348,16 @@ addRqmtSource(rowIndex, sourceData) {
         rqmtSourceElement.setAttribute('sourceOfRqmt', sourceData.sourceOfRqmt);
     }
     
-    if (sourceData.sourceCriticality) {
-        const sourceTypeElement = doc.createElement('sourceType');
-        sourceTypeElement.setAttribute('sourceCriticality', sourceData.sourceCriticality);
-        rqmtSourceElement.appendChild(sourceTypeElement);
-    }
+    // Добавляем все sourceCriticality как отдельные sourceType элементы
+    sourceData.sourceCriticality.forEach(criticality => {
+        if (criticality) {
+            const sourceTypeElement = doc.createElement('sourceType');
+            sourceTypeElement.setAttribute('sourceCriticality', criticality);
+            rqmtSourceElement.appendChild(sourceTypeElement);
+        }
+    });
     
-    // Вставляем в правильное место
+    // Вставляем в правильное место (после task, перед preliminaryRqmts)
     this.insertElementInCorrectOrder(taskNode, rqmtSourceElement, 'rqmtSource');
     
     this._emitChange({
@@ -1416,7 +1439,12 @@ updateRqmtSourceField(rowIndex, sourceIndex, field, value) {
         sourceIndex >= this.tasks[rowIndex].rqmtSources.length) return;
     
     // Обновляем модель
-    this.tasks[rowIndex].rqmtSources[sourceIndex][field] = value;
+    if (field === 'sourceOfRqmt') {
+        this.tasks[rowIndex].rqmtSources[sourceIndex].sourceOfRqmt = value;
+    } else if (field === 'sourceCriticality') {
+        // value должен быть массивом для sourceCriticality
+        this.tasks[rowIndex].rqmtSources[sourceIndex].sourceCriticality = value;
+    }
     
     // Обновляем XML
     const taskNode = this.taskNodes[rowIndex];
@@ -1432,22 +1460,24 @@ updateRqmtSourceField(rowIndex, sourceIndex, field, value) {
                 rqmtSource.removeAttribute('sourceOfRqmt');
             }
         } else if (field === 'sourceCriticality') {
-            let sourceType = rqmtSource.getElementsByTagName('sourceType')[0];
+            // Удаляем все существующие sourceType
+            while (rqmtSource.firstChild) {
+                rqmtSource.removeChild(rqmtSource.firstChild);
+            }
             
-            if (value) {
-                if (!sourceType) {
-                    sourceType = taskNode.ownerDocument.createElement('sourceType');
+            // Добавляем новые sourceType элементы
+            value.forEach(criticality => {
+                if (criticality) {
+                    const sourceType = taskNode.ownerDocument.createElement('sourceType');
+                    sourceType.setAttribute('sourceCriticality', criticality);
                     rqmtSource.appendChild(sourceType);
                 }
-                sourceType.setAttribute('sourceCriticality', value);
-            } else if (sourceType) {
-                rqmtSource.removeChild(sourceType);
-                
-                // Если элемент rqmtSource стал пустым, удаляем его
-                if (!rqmtSource.hasAttributes() && rqmtSource.children.length === 0) {
-                    this.removeRqmtSource(rowIndex, sourceIndex);
-                    return;
-                }
+            });
+            
+            // Если нет sourceOfRqmt и нет sourceCriticality, удаляем элемент
+            if (!rqmtSource.hasAttribute('sourceOfRqmt') && value.length === 0) {
+                this.removeRqmtSource(rowIndex, sourceIndex);
+                return;
             }
         }
     }
@@ -1462,7 +1492,6 @@ getRqmtSources(rowIndex) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return [];
     return this.tasks[rowIndex].rqmtSources || [];
 }
-
     addPersonnel(rowIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
         
@@ -1813,7 +1842,6 @@ getRqmtSources(rowIndex) {
         } else {
             const accessPointRef = doc.createElement('accessPointRef');
             accessPointRef.setAttribute('accessPointNumber', '');
-            accessPointRef.setAttribute('accessPointTypeValue', '');
             workAreaLocationGroup.appendChild(accessPointRef);
         }
 
@@ -1825,7 +1853,7 @@ getRqmtSources(rowIndex) {
             applicRefId: null,
             type: type,
             zones: type === 'zone' ? [{ zoneNumber: '' }] : [],
-            accessPoints: type === 'access' ? [{ accessPointNumber: '', accessPointTypeValue: '' }] : []
+            accessPoints: type === 'access' ? [{ accessPointNumber: '' }] : []
         };
 
         if (!this.tasks[rowIndex].workAreaLocationGroups) {
@@ -1914,42 +1942,6 @@ addZoneToGroup(rowIndex, groupIndex) {
     });
 }
 
-/**
- * Добавляет точку доступа в группу
- */
-addAccessPointToGroup(rowIndex, groupIndex) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex >= groups.length) return;
-
-    const group = groups[groupIndex];
-    const doc = taskNode.ownerDocument;
-    const accessPointRef = doc.createElement('accessPointRef');
-    accessPointRef.setAttribute('accessPointNumber', '');
-    accessPointRef.setAttribute('accessPointTypeValue', '');
-    group.appendChild(accessPointRef);
-
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.push({ 
-        accessPointNumber: '', 
-        accessPointTypeValue: '' 
-    });
-
-    this._emitChange({
-        type: 'accessPoint:added',
-        payload: { 
-            rowIndex, 
-            groupIndex, 
-            accessIndex: this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length - 1 
-        }
-    });
-}
 
 removeZoneFromGroup(rowIndex, groupIndex, zoneIndex) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -2068,37 +2060,6 @@ updateZoneField(rowIndex, groupIndex, zoneIndex, field, value) {
     });
 }
 
-/**
- * Обновляет поле точки доступа
- */
-updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
-    if (accessIndex < 0 || accessIndex >= this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length) return;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex >= groups.length) return;
-
-    const group = groups[groupIndex];
-    const accessPoints = group.getElementsByTagName('accessPointRef');
-    
-    if (accessIndex < accessPoints.length) {
-        const accessPoint = accessPoints[accessIndex];
-        accessPoint.setAttribute(field, value);
-    }
-
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints[accessIndex][field] = value;
-
-    this._emitChange({
-        type: 'accessPoint:changed',
-        payload: { rowIndex, groupIndex, accessIndex, field, value }
-    });
-}
 
 updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -3293,5 +3254,116 @@ addRemarksQuick(targetType, rowIndex, index = null) {
   
 
     /* REMARKS END*/
+
+
+
+    /* ZONE */
+
+    getZoneGroups(rowIndex) {
+        if (rowIndex < 0 || rowIndex >= this.tasks.length) return [];
+        const task = this.tasks[rowIndex];
+        return (task.workAreaLocationGroups || []).filter(group => 
+            group.type === 'zone' || group.zones.length > 0
+        );
+    }
+
+        /**
+     * Получает только группы с точками доступа
+     */
+    getAccessPointGroups(rowIndex) {
+        if (rowIndex < 0 || rowIndex >= this.tasks.length) return [];
+        const task = this.tasks[rowIndex];
+        return (task.workAreaLocationGroups || []).filter(group => 
+            group.type === 'access' || group.accessPoints.length > 0
+        );
+    }
+
+    /**
+ * Определяет, является ли группа зональной
+ */
+isZoneGroup(rowIndex, groupIndex) {
+    const task = this.tasks[rowIndex];
+    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
+    const group = task.workAreaLocationGroups[groupIndex];
+    return group.zones && group.zones.length > 0;
+}
+
+/**
+ * Определяет, является ли группой доступа
+ */
+isAccessGroup(rowIndex, groupIndex) {
+    const task = this.tasks[rowIndex];
+    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
+    const group = task.workAreaLocationGroups[groupIndex];
+    return group.accessPoints && group.accessPoints.length > 0;
+}
+
+addAccessPointToGroup(rowIndex, groupIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
+        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
+
+    const taskNode = this.taskNodes[rowIndex];
+    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
+    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
+    
+    if (groupIndex >= groups.length) return;
+
+    const group = groups[groupIndex];
+    const doc = taskNode.ownerDocument;
+    const accessPointRef = doc.createElement('accessPointRef');
+    accessPointRef.setAttribute('accessPointNumber', '');
+    // Не добавляем accessPointTypeValue
+    group.appendChild(accessPointRef);
+
+    // Обновляем модель
+    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.push({ 
+        accessPointNumber: ''
+    });
+
+    this._emitChange({
+        type: 'accessPoint:added',
+        payload: { 
+            rowIndex, 
+            groupIndex, 
+            accessIndex: this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length - 1 
+        }
+    });
+}
+
+updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
+        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
+    if (accessIndex < 0 || accessIndex >= this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length) return;
+
+    // Обновляем модель
+    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints[accessIndex][field] = value;
+
+    // Обновляем XML (без accessPointTypeValue)
+    const taskNode = this.taskNodes[rowIndex];
+    const preliminaryRqmts = taskNode.getElementsByTagName('preliminaryRqmts')[0];
+    if (!preliminaryRqmts) return;
+
+    const workAreaPmd = this.findWorkAreaProductionMaintData(preliminaryRqmts);
+    if (!workAreaPmd) return;
+
+    const workAreaGroups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
+    if (groupIndex >= workAreaGroups.length) return;
+
+    const workAreaGroup = workAreaGroups[groupIndex];
+    const accessPointRefs = workAreaGroup.getElementsByTagName('accessPointRef');
+    if (accessIndex >= accessPointRefs.length) return;
+
+    const accessPointRef = accessPointRefs[accessIndex];
+    accessPointRef.setAttribute(field, value);
+    
+    this._emitChange({
+        type: 'accessPoint:changed',
+        payload: { rowIndex, groupIndex, accessIndex, field, value }
+    });
+}
+
+    /* ZONE END */
 }
 

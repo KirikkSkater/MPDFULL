@@ -12,6 +12,10 @@ const UNITS = [
   ];
 
 class LimitView extends BaseCellView {
+
+    constructor(model, rowIndex, editable) {
+        super(model, rowIndex, editable);
+    }
     renderContent() {
         const $container = $('<div>').addClass('limit-container');
         const task = this.model.getFilteredTasks()[this.rowIndex];

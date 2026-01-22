@@ -18,6 +18,12 @@ class ScheduleView {
 
     this.initViewRegistry();
 
+    this.initPreviewListeners();
+
+  this.setupModeListeners();
+
+  
+
     // Подпишемся на изменения модели (и сохраним функцию отписки)
     if (typeof this.model.onChange === 'function') {
       // сохраним отписку, если понадобится
@@ -29,22 +35,37 @@ class ScheduleView {
               return;
             } 
             if (meta && meta.type === 'rqmtSource:added' && meta.payload) {
-                const { rowIndex } = meta.payload;
-                this.updateCell(rowIndex, 'rqmtSource');
-                return;
+              const { rowIndex } = meta.payload;
+              const viewKey = `${rowIndex}-rqmtSource`;
+              const view = this.activeViews.get(viewKey);
+              
+              // if (view && typeof view.addSourceBlock === 'function') {
+              //     view.addSourceBlock();
+              // } else {
+                  this.updateCell(rowIndex, 'rqmtSource');
+              // }
+              return;
             }
+          
             
             if (meta && meta.type === 'rqmtSource:removed' && meta.payload) {
-                const { rowIndex } = meta.payload;
-                this.updateCell(rowIndex, 'rqmtSource');
-                return;
-            }
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'rqmtSource');
+              return;
+          }
             
-            if (meta && meta.type === 'rqmtSource:changed' && meta.payload) {
-                const { rowIndex } = meta.payload;
+          if (meta && meta.type === 'rqmtSource:changed' && meta.payload) {
+            const { rowIndex, sourceIndex } = meta.payload;
+            const viewKey = `${rowIndex}-rqmtSource`;
+            const view = this.activeViews.get(viewKey);
+            
+            // if (view && typeof view.updateSourceBlock === 'function') {
+            //     view.updateSourceBlock(sourceIndex);
+            // } else {
                 this.updateCell(rowIndex, 'rqmtSource');
-                return;
-            }
+            // }
+            return;
+        }
 
             if (meta && meta.type === 'limit:added' && meta.payload) {
               console.log('Limit added event received', meta.payload);
@@ -102,22 +123,72 @@ class ScheduleView {
             }
             if (meta && meta.type === 'taskDuration:added' && meta.payload) {
               const { rowIndex } = meta.payload;
-              this.updateCell(rowIndex, 'taskDuration');
+              const viewKey = `${rowIndex}-taskDuration`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.addDurationBlock === 'function') {
+                  // Гранулярное обновление - добавляем только новый блок
+                  view.addDurationBlock();
+              } else {
+                  // Если view нет, обновляем всю ячейку
+                  this.updateCell(rowIndex, 'taskDuration');
+              }
               return;
           }
           
           if (meta && meta.type === 'taskDuration:changed' && meta.payload) {
-              const { rowIndex } = meta.payload;
-              this.updateCell(rowIndex, 'taskDuration');
+              const { rowIndex, durationIndex, field } = meta.payload;
+              const viewKey = `${rowIndex}-taskDuration`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.updateDurationBlock === 'function') {
+                  // Гранулярное обновление - обновляем только измененный блок
+                  view.updateDurationBlock(durationIndex);
+              } else {
+                  this.updateCell(rowIndex, 'taskDuration');
+              }
               return;
           }
           
           if (meta && meta.type === 'taskDuration:removed' && meta.payload) {
               const { rowIndex } = meta.payload;
+              // При удалении нужно полностью перерисовать, так как индексы сдвигаются
               this.updateCell(rowIndex, 'taskDuration');
               return;
           }
           
+          if (meta && meta.type === 'personnel:added' && meta.payload) {
+            const { rowIndex } = meta.payload;
+            const viewKey = `${rowIndex}-personnel`;
+            const view = this.activeViews.get(viewKey);
+            
+            if (view && typeof view.addPersonnelBlock === 'function') {
+                view.addPersonnelBlock();
+            } else {
+                this.updateCell(rowIndex, 'personnel');
+            }
+            return;
+        }
+        
+        if (meta && meta.type === 'personnel:changed' && meta.payload) {
+            const { rowIndex, personnelIndex } = meta.payload;
+            const viewKey = `${rowIndex}-personnel`;
+            const view = this.activeViews.get(viewKey);
+            
+            if (view && typeof view.updatePersonnelBlock === 'function') {
+                view.updatePersonnelBlock(personnelIndex);
+            } else {
+                this.updateCell(rowIndex, 'personnel');
+            }
+            return;
+        }
+        
+        if (meta && meta.type === 'personnel:removed' && meta.payload) {
+            const { rowIndex } = meta.payload;
+            this.updateCell(rowIndex, 'personnel');
+            return;
+        }
+        
 
 
             if (meta && meta.type === 'applicability:changed' && meta.payload) {
@@ -133,18 +204,30 @@ class ScheduleView {
                 this.updateTaskDurationInRow(p.rowIndex, p.durationIndex);
                 return;
               }
-
-              if (p.field === 'workAreaGroup' && this.isZoneGroup(p.rowIndex, p.groupIndex)) {
-                this.updateZoneCell(p.rowIndex);
+            
+            // На новые (используем методы модели):
+            if (p.field === 'workAreaGroup' && this.model.isZoneGroup(p.rowIndex, p.groupIndex)) {
+                this.updateCell(p.rowIndex, 'zoneNumber');
                 return;
-                
             }
             
-            // Обработка workAreaGroup для доступа
-              if (p.field === 'workAreaGroup' && this.isAccessGroup(p.rowIndex, p.groupIndex)) {
-                  this.updateAccessPointCell(p.rowIndex);
-                  return;
+            if (p.field === 'workAreaGroup' && this.model.isAccessGroup(p.rowIndex, p.groupIndex)) {
+                this.updateCell(p.rowIndex, 'accessPoint');
+                return;
+            }
+
+            if (p.field === 'personnel') {
+              const viewKey = `${p.rowIndex}-personnel`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.updatePersonnelBlock === 'function' && p.personnelIndex !== undefined) {
+                  view.updatePersonnelBlock(p.personnelIndex);
+              } else {
+                  this.updateCell(p.rowIndex, 'personnel');
               }
+              return;
+          }
+
               // можно добавить другие обработчики granular events: field, cell, row
               if (p.field) {
                 this.updateCell(p.rowIndex, p.field);
@@ -169,12 +252,14 @@ class ScheduleView {
               if (p.target === 'limit') {
                 this.updateLimitInRow(p.rowIndex, p.limitIndex);
               } else if (p.target === 'workArea') {
+                // Определяем тип группы через модель
                 if (this.model.isZoneGroup(p.rowIndex, p.groupIndex)) {
-                  this.updateZoneCell(p.rowIndex);
+                    this.updateCell(p.rowIndex, 'zoneNumber'); // TODO: убрать примечания из зоны
                 } else {
-                  this.updateAccessPointCell(p.rowIndex);
+                    this.updateCell(p.rowIndex, 'accessPoint');
                 }
-              } else if (p.target === 'task') {
+                return;
+            } else if (p.target === 'task') {
                 this.updateCell(p.rowIndex, 'taskDescr');
               }
               
@@ -189,12 +274,20 @@ class ScheduleView {
               if (p.targetType === 'limit') {
                 this.updateLimitInRow(p.rowIndex, p.index);
               } else if (p.targetType === 'workArea') {
+                // Определяем тип группы через модель
                 if (this.model.isZoneGroup(p.rowIndex, p.index)) {
-                  this.updateZoneCell(p.rowIndex);
+                    this.updateCell(p.rowIndex, 'zoneNumber');
                 } else {
-                  this.updateAccessPointCell(p.rowIndex);
+                    this.updateCell(p.rowIndex, 'accessPoint');
                 }
-              } else if (p.targetType === 'task') {
+                
+                // Фокусируемся на поле примечания через небольшую задержку
+                setTimeout(() => {
+                    this.focusRemarksField(p.rowIndex, p.targetType, p.index);
+                }, 100);
+                
+                return;
+            } else if (p.targetType === 'task') {
                 this.updateCell(p.rowIndex, 'taskDescr');
               }
               
@@ -252,13 +345,191 @@ class ScheduleView {
         console.error('Failed to clear applicability from view:', err);
       }
     });
+
+
+    this.setEditMode = (editable) => {
+      this.editable = editable;
+      this.updateEditMode();
+  };
+  
+  this.setPreviewMode = (previewMode) => {
+      this.previewMode = previewMode;
+      this.updatePreviewMode();
+  };
     
   }
+
+
+  setupModeListeners() {
+    // Можно слушать изменения классов на body
+    // или события от контроллера
+    document.addEventListener('DOMContentLoaded', () => {
+        this.updateFromGlobalState();
+    });
+}
+
+
+updateFromGlobalState() {
+  const newPreviewMode = document.body.classList.contains('preview-mode');
+  const newEditMode = document.body.classList.contains('edit-mode');
+  
+  if (newPreviewMode !== this.previewMode) {
+      this.previewMode = newPreviewMode;
+      this.updatePreviewMode();
+  }
+  
+  if (newEditMode !== this.editable) {
+      this.editable = newEditMode;
+      this.updateEditMode();
+  }
+}
+
+setEditMode(editable) {
+  this.editable = editable;
+  this.updateEditMode();
+  this.setEditable(editable);
+}
+
+// Устанавливаем режим предпросмотра (вызывается контроллером)
+setPreviewMode(previewMode) {
+  this.previewMode = previewMode;
+  this.updatePreviewMode();
+}
+
+updateEditMode() {
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updateEditMode) {
+          view.updateEditMode(this.editable && !this.previewMode);
+      }
+  });
+  this.setEditable(this.editable);
+  // Важно: обновляем ТОЛЬКО ячейки, которые должны быть редактируемыми
+  // Раньше редактировались не все ячейки, а только определенные
+  this.updateEditableCells(this.editable);
+  
+  // Обновляем видимость action buttons
+  this.updateActionButtons();
+}
+
+  handlePreviewModeChange(previewMode) {
+    // Обновляем все активные представления
+    this.activeViews.forEach((view, key) => {
+        if (view.setPreviewMode) {
+            view.setPreviewMode(previewMode);
+        }
+    });
+    
+    // Обновляем видимость кнопок
+    this.updateButtonsVisibility();
+}
+
+
+
+updateButtonsVisibility() {
+  const isPreviewMode = document.body.classList.contains('preview-mode');
+  
+  // Показываем/скрываем кнопки действий
+  if (isPreviewMode) {
+      this.$container.find('.action-button, .action-button-td').addClass('preview-hidden');
+  } else if (this.editable) {
+      this.$container.find('.action-button, .action-button-td').removeClass('preview-hidden');
+  }
+}
+
+  initPreviewListeners() {
+    document.addEventListener('previewModeChanged', (event) => {
+        this.previewMode = event.detail.previewMode;
+        this.updatePreviewMode();
+    });
+  }
+
+  updatePreviewMode() {
+    if (this.previewMode) {
+        // В режиме предпросмотра отключаем редактирование всех ячеек
+        this.$container.find('[contenteditable="true"]').prop('contenteditable', false);
+    } else if (this.editable) {
+        // Если выключили предпросмотр и включено редактирование
+        // Восстанавливаем редактируемость ТОЛЬКО для разрешенных ячеек
+        this.disablePreviewMode()
+        this.updateEditableCells(this.editable);
+    }
+    
+    // Обновляем все активные представления
+    this.activeViews.forEach((view, key) => {
+        if (view.setPreviewMode) {
+            view.setPreviewMode(this.previewMode);
+        }
+    });
+    
+    // Обновляем видимость action buttons
+    this.updateActionButtons();
+}
+
+updateActionButtons() {
+  if (this.previewMode || !this.editable) {
+      this.$container.find('.action-button, .action-button-td').addClass('hidden');
+  } else {
+      this.$container.find('.action-button, .action-button-td').removeClass('hidden');
+  }
+}
+
+enablePreviewMode() {
+  // Добавляем класс предпросмотра к таблице
+  this.$container.addClass('preview-mode');
+  
+  // Отключаем редактирование ячеек
+  // this.$container.find('.editable-cell[contenteditable="true"]')
+  //     .each((index, cell) => {
+  //         const $cell = $(cell);
+  //         $cell.attr('data-was-editable', 'true');
+  //         $cell.prop('contenteditable', false);
+  //     });
+  
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updatePreviewMode) {
+          view.updatePreviewMode(true);
+      }
+  });
+  
+  // Обновляем видимость кнопок в заголовках разделов
+  this.$container.find('.section-header .btn').addClass('preview-hidden');
+}
+
+// Выключение режима предпросмотра
+disablePreviewMode() {
+  // Убираем класс предпросмотра
+  this.$container.removeClass('preview-mode');
+  
+  // Восстанавливаем редактирование ячеек (только если включен режим редактирования)
+  if (this.editable) {
+      this.$container.find('.editable-cell[data-was-editable="true"]')
+          .each((index, cell) => {
+              $(cell).prop('contenteditable', true);
+          });
+  }
+  
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updatePreviewMode) {
+          view.updatePreviewMode(false);
+      }
+  });
+  
+  // Восстанавливаем кнопки в заголовках разделов (только если включен режим редактирования)
+  if (this.editable) {
+      this.$container.find('.section-header .btn').removeClass('preview-hidden');
+  }
+}
 
   initViewRegistry() {
     ViewRegistry.register('taskDuration', TaskDurationView);
     ViewRegistry.register('limit', LimitView);
     ViewRegistry.register('rqmtSource', RqmtSourceView);
+    ViewRegistry.register('zoneNumber', ZoneView);
+    ViewRegistry.register('accessPoint', AccessPointView);
+    ViewRegistry.register('personnel', PersonnelView);
     // Позже добавим другие представления здесь
 }
 
@@ -453,7 +724,14 @@ class ScheduleView {
         }
 
         if (h.key === 'personnel') {
-          this.renderPersonnelCell($cell, task, rowIndex);
+          const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+          
+          // Сохраняем представление для последующего обновления
+          const viewKey = `${rowIndex}-${h.key}`;
+          this.activeViews.set(viewKey, view);
+          
+          // Рендерим и добавляем в ячейку
+          $cell.append(view.render());
           $row.append($cell);
           return;
         }
@@ -576,17 +854,26 @@ class ScheduleView {
       }
 
         
-        if (h.key === 'zoneNumber') {
-          this.renderZoneCell($cell, task, rowIndex);
-          $row.append($cell);
-          return;
-        }
-      
-        if (h.key === 'accessPoint') {
-            this.renderAccessPointCell($cell, task, rowIndex);
-            $row.append($cell);
-            return;
-        }
+      if (h.key === 'zoneNumber') {
+        // Используем ViewRegistry
+        const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+        const viewKey = `${rowIndex}-${h.key}`;
+        this.activeViews.set(viewKey, view);
+        $cell.append(view.render());
+        $row.append($cell);
+        return;
+    }
+  
+    // Заменяем старую логику accessPoint
+    if (h.key === 'accessPoint') {
+        // Используем ViewRegistry
+        const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+        const viewKey = `${rowIndex}-${h.key}`;
+        this.activeViews.set(viewKey, view);
+        $cell.append(view.render());
+        $row.append($cell);
+        return;
+    }
 
         if (h.key === 'taskCode') { // TODO: где-то добавить обновление в модели. Написать в тот чат где знает что за модель. и приплесть то что снизу написано про h.editble
           const dict = DictionariesTC.getDictionary("taskCodeDict");
@@ -697,6 +984,35 @@ class ScheduleView {
     $cell.text(value);
 }
 
+updateEditableCells(editable) {
+  if (!this.$table) return;
+  
+
+
+  this.activeViews.forEach((view, key) => {
+    const [rowIndex, colKey] = key.split('-');
+    this.forceRenderCell(parseInt(rowIndex), colKey);
+  });
+
+  // Показываем/скрываем кнопки редактирования
+  const $editButtons = $(document).find('.edit-mode-btn');
+  if (editable) {
+    $editButtons.show();
+    // Показываем все блоки примечаний в режиме редактирования
+    this.$table.find('.remarks-block').show();
+  } else {
+    $editButtons.hide();
+    // Скрываем пустые примечания в режиме просмотра
+    this.$table.find('.remarks-block').each(function() {
+      const $block = $(this);
+      const $text = $block.find('.remarks-text');
+      if (!$text.text().trim()) {
+        $block.hide();
+      }
+    });
+  }
+}
+
 setEditable(editable) {
   this.editable = editable;
   if (!this.$table) return;
@@ -772,8 +1088,8 @@ setEditable(editable) {
     if (withDelete && rowIndex !== null && targetType !== null) {
       $tag.append(
         $('<button>')
-          .addClass('btn-outline-danger btn-remove btn-icon btn-square delete-applic edit-mode-btn')
-          .html('&times')
+          .addClass('btn btn-xs btn-outline-danger btn-remove btn-icon btn-square delete-applic edit-mode-btn')
+          // .html('&times')
           .attr('title', 'Удалить применимость')
           .data('applic-id', applicId)
           .on('click', () => {
@@ -864,531 +1180,6 @@ setEditable(editable) {
   }
 
 
-  renderPersonnelCell($cell, task, rowIndex) {
-    $cell.empty();
-    const $container = $('<div>').addClass('personnel-container');
-    
-    // Обрабатываем каждый personnel
-    (task.personnel || []).forEach((person, index) => {
-      const $personBlock = $('<div>')
-        .addClass('personnel-block')
-        .attr('data-row-index', rowIndex)
-        .attr('data-personnel-index', index);
-
-        
-      const $header = $('<div>').addClass('personnel-header');
-
-      if (person.applicRefId) {
-        const applicData = this.model.applicMap[person.applicRefId];
-        if (applicData) {
-          const $applicTag = this.renderApplicTag(applicData, true, rowIndex,"personnel", index);
-          $header.append($applicTag);
-        }
-      }  
-      
-      
-      // Заголовок блока с кнопкой удаления
-      
-      // Кнопка удаления
-      const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить блок')
-        .on('click', () => {
-          if (confirm('Удалить этот блок?')) {
-            this.model.removePersonnel(rowIndex, index);
-          }
-        });
-
-      const $divDeleteBtn = $('<div>').attr('style', 'display: flex; justify-content: center;');
-      $divDeleteBtn.append($deleteButton);
-      $header.append($divDeleteBtn);
-      
-      $personBlock.append($header);
-      
-      // Поле для ввода количества человек
-      const $numContainer = $('<div>').addClass('personnel-input-container');
-      $numContainer.append($('<label>').text('Кол-во:'));
-      
-      const $numInput = $('<input>')
-        .attr('type', 'number')
-        .addClass('personnel-num-input')
-        .val(person.numRequired)
-        .on('change', () => {
-          this.model.updatePersonnelField(rowIndex, index, 'numRequired', $numInput.val());
-        });
-      
-      $numContainer.append($numInput);
-      $personBlock.append($numContainer)
-      
-      // Выпадающий список для специализации
-      const $catContainer = $('<div>').addClass('personnel-input-container-spec');
-      $catContainer.append($('<label>').text('Специализация:'));
-      
-      const $catSelect = $('<select>').addClass('personnel-cat-select');
-      // Заполняем значениями из справочника
-      const personCatDict = DictionariesTC.getDictionary("personCatDict");
-      Object.entries(personCatDict).forEach(([key, value]) => {
-        $catSelect.append($('<option>').val(key).text(value));
-      });
-      $catSelect.val(person.personCategoryCode);
-      
-      $catSelect.on('change', () => {
-        this.model.updatePersonnelField(rowIndex, index, 'personCategoryCode', $catSelect.val());
-      });
-      
-      $catContainer.append($catSelect);
-      $personBlock.append($catContainer);
-      
-      // Добавляем применимость, если есть
-      
-      
-      $container.append($personBlock);
-    });
-    
-    const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
-      .text('+ Добавить блок')
-      .on('click', () => {
-        this.model.addPersonnel(rowIndex);
-      });
-      
-    const $divButton = $('<div>').attr('style', 'display: flex; justify-content: center; margin-top: 5px;');
-    $divButton.append($addButton);
-
-    $container.append($divButton);
-
-    if (!this.editable){
-      $addButton.hide();
-    }else{
-      $addButton.show();
-    }
-    
-    $cell.append($container);
-  }
-
-
-  renderZoneCell($cell, task, rowIndex) {
-    $cell.empty();
-    const $container = $('<div>').addClass('work-area-groups-container');
-    $cell.append($container);
-    
-    // Фильтруем группы, содержащие зоны
-    const zoneGroups = (task.workAreaLocationGroups || []).filter(group => 
-        group.type === 'zone' || group.zones.length > 0
-    );
-    
-    // Рендерим группы с зонами
-    zoneGroups.forEach((group, index) => {
-        // Находим оригинальный индекс группы в общем массиве
-        const originalGroupIndex = task.workAreaLocationGroups.indexOf(group);
-        $container.append(this.renderZoneGroup(group, originalGroupIndex, rowIndex));
-    });
-    
-    // Кнопка добавления группы зон
-    const $addButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
-        .text('Добавить зоны').attr("title", "Добавить блок зон")
-        .on('click', () => {
-            this.model.addWorkAreaLocationGroup(rowIndex, 'zone');
-        });
-    
-    if (!this.editable) $addButton.hide();
-    
-    const $buttonContainer = $('<div>').attr('style', 'text-align: center; margin-top: 10px;');
-    $buttonContainer.append($addButton);
-    $container.append($buttonContainer);
-}
-
-  renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-  }
-
-  renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-  }
-
-renderWorkAreaLocationGroup(group, groupIndex, rowIndex) {
-    const $groupBlock = $('<div>')
-        .addClass('work-area-group-block')
-        .attr('data-group-index', groupIndex)
-        .attr('data-task-index', rowIndex);
-
-    // Заголовок блока с применимостью и кнопкой удаления
-    const $header = $('<div>').addClass('work-area-group-header');
-    
-    // Применимость группы
-    if (group.applicRefId) {
-        const $applicTag = this.renderApplicTag(
-            {
-                id: group.applicRefId,
-                displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-            },
-            true,
-            rowIndex,
-            "workAreaGroup",
-            groupIndex
-        );
-        $header.append($applicTag);
-    }
-    
-    // Кнопка удаления группы
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить блок')
-        .attr("style", "margin-top: 4px; margin-left: 4px;")
-        .on('click', () => {
-            if (confirm('Удалить этот блок?')) {
-                this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    $header.append($deleteButton);
-    $groupBlock.append($header);
-
-    // Содержимое группы - зоны или точки доступа
-    const $content = $('<div>').addClass('work-area-group-content');
-    
-    // Рендерим зоны
-    if (group.zones && group.zones.length > 0) {
-        const $zonesContainer = $('<div>').addClass('zones-container');
-        group.zones.forEach((zone, zoneIndex) => {
-            $zonesContainer.append(this.renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex));
-        });
-        
-        // Кнопка добавления зоны
-        const $addZoneButton = $('<button>')
-            .addClass('btn btn-sm btn-outline-secondary btn-add edit-mode-btn')
-            .text('+').attr("title", "Добавить зону")
-            .on('click', () => {
-                this.model.addZoneToGroup(rowIndex, groupIndex);
-            });
-        
-        if (!this.editable) $addZoneButton.hide();
-        $zonesContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addZoneButton));
-        $content.append($zonesContainer);
-    }
-    
-    // Рендерим точки доступа
-    if (group.accessPoints && group.accessPoints.length > 0) {
-        const $accessContainer = $('<div>').addClass('access-points-container');
-        group.accessPoints.forEach((access, accessIndex) => {
-            $accessContainer.append(this.renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex));
-        });
-        
-        // Кнопка добавления точки доступа
-        const $addAccessButton = $('<button>')
-            .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
-            .text('+ Добавить доступ')
-            .on('click', () => {
-                this.model.addAccessPointToGroup(rowIndex, groupIndex);
-            });
-        
-        if (!this.editable) $addAccessButton.hide();
-        $accessContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addAccessButton));
-        $content.append($accessContainer);
-    }
-    
-    $groupBlock.append($content);
-    return $groupBlock;
-}
-
-renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-}
-
-renderAccessPointCell($cell, task, rowIndex) {
-  $cell.empty();
-  const $container = $('<div>').addClass('work-area-groups-container');
-  $cell.append($container);
-  
-  // Фильтруем группы, содержащие точки доступа
-  const accessGroups = (task.workAreaLocationGroups || []).filter(group => 
-      group.type === 'access' || group.accessPoints.length > 0
-  );
-  
-  // Рендерим группы с доступом
-  accessGroups.forEach((group, index) => {
-      // Находим оригинальный индекс группы в общем массиве
-      const originalGroupIndex = task.workAreaLocationGroups.indexOf(group);
-      $container.append(this.renderAccessGroup(group, originalGroupIndex, rowIndex));
-  });
-  
-  // Кнопка добавления группы доступа
-  const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
-      .text('Добавить точки доступа').attr("title", "Добавить блок точек доступа")
-      .on('click', () => {
-          this.model.addWorkAreaLocationGroup(rowIndex, 'access');
-      });
-  
-  if (!this.editable) $addButton.hide();
-  
-  const $buttonContainer = $('<div>').attr('style', 'text-align: center; margin-top: 10px;');
-  $buttonContainer.append($addButton);
-  $container.append($buttonContainer);
-}
-
-renderAccessGroup(group, groupIndex, rowIndex) {
-  const $groupBlock = $('<div>')
-      .addClass('work-area-group-block access-group')
-      .attr('data-group-index', groupIndex)
-      .attr('data-task-index', rowIndex);
-
-  // Заголовок блока с применимостью
-  const $header = $('<div>').addClass('work-area-group-header');
-  
-  // Применимость группы
-  if (group.applicRefId) {
-      const $applicTag = this.renderApplicTag(
-          {
-              id: group.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-          },
-          true,
-          rowIndex,
-          "workAreaGroup",
-          groupIndex
-      );
-      $header.append($applicTag);
-  }
-  
-  // Кнопка удаления группы
-  const $deleteButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')
-      // .html('&times;')
-      .attr('title', 'Удалить блок')
-      .attr("style", "margin-top: 4px; margin-left: 4px;")
-      .on('click', () => {
-          if (confirm('Удалить этот блок?')) {
-              this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-          }
-      });
-  
-  if (!this.editable) $deleteButton.hide();
-  $header.append($deleteButton);
-  $groupBlock.append($header);
-
-  // Содержимое группы - точки доступа
-  const $content = $('<div>').addClass('work-area-group-content');
-  
-  const $accessContainer = $('<div>').addClass('access-points-container');
-  group.accessPoints.forEach((access, accessIndex) => {
-      $accessContainer.append(this.renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex));
-  });
-  
-  // Кнопка добавления точки доступа
-  const $addAccessButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
-      .text('+').attr("title", "Добавить точку доступа")
-      .on('click', () => {
-          this.model.addAccessPointToGroup(rowIndex, groupIndex);
-      });
-  
-  if (!this.editable) $addAccessButton.hide();
-  $accessContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addAccessButton));
-  $content.append($accessContainer);
-
-  $groupBlock.append($content);
-  const workAreaRemarks = group.remarks ? group.remarks.text : undefined;
-
-  if (workAreaRemarks != undefined) {
-    const $remarksBlock = this.renderRemarksField(workAreaRemarks, rowIndex, 'workArea', groupIndex);
-    if ($remarksBlock) {
-      $groupBlock.append($remarksBlock);
-    }
-}
-  return $groupBlock;
-}
-
-renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex) {
-  const $accessBlock = $('<div>').addClass('access-point-in-group');
-  
-  // Выбор номера точки доступа
-  const $numberSelect = $('<select>').addClass('access-point-number-select');
-  const accessPointDict = DictionariesTC.getDictionary("accessPointNumber");
-  Object.entries(accessPointDict || {}).forEach(([key, value]) => {
-      $numberSelect.append($('<option>').val(key).text(value));
-  });
-  $numberSelect.val(access.accessPointNumber);
-  
-  $numberSelect.on('change', e => {
-      this.model.updateAccessPointField(rowIndex, groupIndex, accessIndex, 'accessPointNumber', e.target.value);
-  });
-  
-  // Выбор типа точки доступа
-  const $typeSelect = $('<select>').addClass('access-point-type-select');
-  const accessTypeDict = DictionariesTC.getDictionary("accessPointType");
-  Object.entries(accessTypeDict || {}).forEach(([key, value]) => {
-      $typeSelect.append($('<option>').val(key).text(value));
-  });
-  $typeSelect.val(access.accessPointTypeValue);
-  
-  $typeSelect.on('change', e => {
-      this.model.updateAccessPointField(rowIndex, groupIndex, accessIndex, 'accessPointTypeValue', e.target.value);
-  });
-  
-  const $deleteButton = $('<button>')
-      .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
-      // .html('&times;')
-      .attr('title', 'Удалить точку доступа')
-      .on('click', () => {
-          if (confirm('Удалить эту точку доступа?')) {
-              this.model.removeAccessPointFromGroup(rowIndex, groupIndex, accessIndex);
-          }
-      });
-  
-  if (!this.editable) $deleteButton.hide();
-  
-  $accessBlock.append($numberSelect, $typeSelect, $deleteButton);
-  return $accessBlock;
-}
-
-  renderSingleZoneBlock(zone, zoneIndex, rowIndex) {
-      const $block = $('<div>')
-          .addClass('zone-block')
-          .attr('data-zone-index', zoneIndex)
-          .attr('data-task-index', rowIndex);
-
-      // Применимость зоны
-      const $applicTag = this.renderZoneApplic(zone, rowIndex, zoneIndex);
-      if ($applicTag) {
-          $block.append($applicTag);
-      }
-
-      const $header = $('<div>').addClass('zone-header');
-
-      // Выпадающий список для номера зоны
-      const $zoneSelect = $('<select>').addClass('zone-number-select');
-      const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-      Object.entries(zoneNumberDict).forEach(([key, value]) => {
-          $zoneSelect.append($('<option>').val(key).text(value));
-      });
-      $zoneSelect.val(zone.zoneNumber);
-      
-      $zoneSelect.on('change', e => {
-          this.model.updateZoneField(rowIndex, zoneIndex, 'zoneNumber', e.target.value);
-      });
-
-      $header.append($zoneSelect);
-
-      // Кнопка удаления зоны
-      const $deleteButton = $('<button>')
-          .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')
-          // .html('&times;')
-          .attr('title', 'Удалить зону')
-          .on('click', () => {
-              if (confirm('Удалить эту зону?')) {
-                  this.model.removeZoneFromTask(rowIndex, zoneIndex);
-              }
-          });
-
-      if (!this.editable) {
-          $deleteButton.hide();
-      } else {
-          $deleteButton.show();
-      }
-
-      $header.append($deleteButton);
-      $block.append($header);
-
-      return $block;
-  }
-
-  renderZoneApplic(zone, rowIndex, zoneIndex) {
-      if (!zone.applicRefId) return null;
-      return this.renderApplicTag(
-          {
-              id: zone.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(zone.applicRefId)
-          },
-          true,
-          rowIndex,
-          "zone",  // targetType
-          zoneIndex  
-      ).addClass('zone-applic-tag');
-  }
-
   updateZoneInRow(rowIndex, zoneIndex) {
       console.log('updateZoneInRow: rowIndex=', rowIndex, 'zoneIndex=', zoneIndex);
       try {
@@ -1428,122 +1219,6 @@ renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex) {
           this.render();
       }
   }
-
-  renderZoneGroup(group, groupIndex, rowIndex) {
-    const $groupBlock = $('<div>')
-        .addClass('work-area-group-block zone-group')
-        .attr('data-group-index', groupIndex)
-        .attr('data-task-index', rowIndex);
-
-    // Заголовок блока с применимостью
-    const $header = $('<div>').addClass('work-area-group-header');
-    
-    // Применимость группы
-    if (group.applicRefId) {
-        const $applicTag = this.renderApplicTag(
-            {
-                id: group.applicRefId,
-                displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-            },
-            true,
-            rowIndex,
-            "workAreaGroup",
-            groupIndex
-        );
-        $header.append($applicTag);
-    }
-    
-    // Кнопка удаления группы
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')
-        // .html('&times;')
-        .attr('title', 'Удалить блок')
-        .attr("style", "margin-top: 4px; margin-left: 4px;")
-        .on('click', () => {
-            if (confirm('Удалить этот блок?')) {
-                this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    $header.append($deleteButton);
-    $groupBlock.append($header);
-
-    // Содержимое группы - зоны
-    const $content = $('<div>').addClass('work-area-group-content');
-    
-    const $zonesContainer = $('<div>').addClass('zones-container');
-    group.zones.forEach((zone, zoneIndex) => {
-        $zonesContainer.append(this.renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex));
-    });
-    
-    // Кнопка добавления зоны
-    const $addZoneButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-secondary add-zone-btn edit-mode-btn')
-        .text('+').attr("title", "Добавить зону")
-        .on('click', () => {
-            this.model.addZoneToGroup(rowIndex, groupIndex);
-        });
-    
-    if (!this.editable) $addZoneButton.hide();
-    $zonesContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px; margin-bottom: 5px').append($addZoneButton));
-    $content.append($zonesContainer);
-    
-    $groupBlock.append($content);
-
-    return $groupBlock;
-}
-  
-  updateZoneCell(rowIndex) {
-    const tasks = this.model.getFilteredTasks();
-    if (rowIndex < 0 || rowIndex >= tasks.length) return;
-    
-    const task = tasks[rowIndex];
-    const $table = $('table.schedule-table');
-    const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-    if (!$row.length) return;
-    
-    // Находим индекс колонки zoneNumber
-    const headers = this.model.getHeaders();
-    const zoneColIndex = headers.findIndex(h => h.key === 'zoneNumber');
-    if (zoneColIndex === -1) return;
-    
-    const $cell = $row.find('td').eq(zoneColIndex);
-    this.renderZoneCell($cell, task, rowIndex);
-  }
-
-  updateAccessPointCell(rowIndex) {
-    const tasks = this.model.getFilteredTasks();
-    if (rowIndex < 0 || rowIndex >= tasks.length) return;
-    
-    const task = tasks[rowIndex];
-    const $table = $('table.schedule-table');
-    const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-    if (!$row.length) return;
-    
-    // Находим индекс колонки accessPoint
-    const headers = this.model.getHeaders();
-    const accessColIndex = headers.findIndex(h => h.key === 'accessPoint');
-    if (accessColIndex === -1) return;
-    
-    const $cell = $row.find('td').eq(accessColIndex);
-    this.renderAccessPointCell($cell, task, rowIndex);
-  }
-
-  // Вспомогательные методы для определения типа группы
-isZoneGroup(rowIndex, groupIndex) {
-    const task = this.model.getFilteredTasks()[rowIndex];
-    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
-    const group = task.workAreaLocationGroups[groupIndex];
-    return group.zones && group.zones.length > 0;
-}
-
-isAccessGroup(rowIndex, groupIndex) {
-    const task = this.model.getFilteredTasks()[rowIndex];
-    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
-    const group = task.workAreaLocationGroups[groupIndex];
-    return group.accessPoints && group.accessPoints.length > 0;
-}
 
 renderAmtossCell($cell, task, rowIndex) {
   $cell.empty();
@@ -2245,7 +1920,7 @@ clearContext() {
   
   // 3. Очищаем обработчики событий (кроме основных, зарегистрированных в конструкторе)
   // Удаляем все обработчики, привязанные к контейнеру, кроме базовых
-  this.$container.off('.scheduleview');
+  // this.$container.off('.scheduleview');
   
   // 4. Очищаем кешированные данные
   this.headers = [];
@@ -2318,19 +1993,6 @@ resetViewState() {
   $(document.activeElement).blur();
 }
 
-// // Обновляем метод renderTaskTable, чтобы он начинался с очистки контекста:
-// renderTaskTable() {
-//   // Очищаем контекст перед рендерингом новой таблицы
-//   this.clearContext();
-  
-//   console.log('Full render with clean context');
-  
-//   // Создаем новую таблицу
-//   this.$table = $('<table>', { class: 'table table-bordered schedule-table' });
-  
-//   // ... остальной существующий код метода renderTaskTable ...
-// }
-
 // Обновляем метод updateView, чтобы очищал контекст при смене режима:
 updateView(isEditMode) {
   // Очищаем контекст перед сменой режима
@@ -2355,7 +2017,7 @@ destroy() {
   this.clearContext();
   
   // 3. Удаляем все обработчики событий
-  this.$container.off();
+  // this.$container.off();
   
   // 4. Очищаем ссылки
   this.model = null;
@@ -2363,7 +2025,7 @@ destroy() {
   this.dmCodeModal = null;
   
   // 5. Удаляем все дочерние элементы из контейнера
-  this.$container.empty();
+  // this.$container && this.$container.empty();
   
   console.log('ScheduleView destroyed');
 }
