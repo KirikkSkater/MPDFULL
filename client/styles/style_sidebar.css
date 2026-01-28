@@ -25,5 +25,8 @@
 .table-wrapper {
   flex-grow: 1;
   overflow: auto;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
   padding-left: 0; /* динамически сдвигается */
 }

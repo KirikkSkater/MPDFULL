@@ -1,19 +1,7 @@
-const UNITS = [
-  { key: 'th01', label: 'th01 - Flight hours'   },
-  { key: 'th02', label: 'th02 - Flight cycles'  },
-  { key: 'th03', label: 'th03 - Months'         },
-  { key: 'th04', label: 'th04 - Weeks'          },
-  { key: 'th05', label: 'th05 - Years'          },
-  { key: 'th06', label: 'th06 - Days'           },
-  { key: 'th08', label: 'th08 - Pressure cycles'},
-  { key: 'th09', label: 'th09 - Engine cycles'  },
-  { key: 'th10', label: 'th10 - Engine change'  },
-  { key: 'th11', label: 'th11 - Shop visits'    }
-];
 
 class ScheduleView {
   constructor(model, $container) {
-    this.model = model; // ScheduleTableModel instance  //
+    this.model = model; // ScheduleTableModel instance
     this.$container = $container; // jQuery div where table will be rendered
     this.$table = null;
 
@@ -26,18 +14,107 @@ class ScheduleView {
 
     this.config = model.config;
 
+    this.activeViews = new Map(); // Для управления жизненным циклом
+
+    this.initViewRegistry();
+
+    this.initPreviewListeners();
+
+  this.setupModeListeners();
+
+  
+
     // Подпишемся на изменения модели (и сохраним функцию отписки)
     if (typeof this.model.onChange === 'function') {
       // сохраним отписку, если понадобится
         this._unsubscribeModel = this.model.onChange((xml, meta) => {
           try {
-
-            if (meta && meta.type === 'limit:added' && meta.payload) {
-              // // Обработка добавления нового limit
-              // const { rowIndex } = meta.payload;
-              // this.updateLimitCell(rowIndex);
+            if (meta && meta.type === 'rqmtSource:set' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'rqmtSource');
+              return;
+            } 
+            if (meta && meta.type === 'rqmtSource:added' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              const viewKey = `${rowIndex}-rqmtSource`;
+              const view = this.activeViews.get(viewKey);
+              
+              // if (view && typeof view.addSourceBlock === 'function') {
+              //     view.addSourceBlock();
+              // } else {
+                  this.updateCell(rowIndex, 'rqmtSource');
+              // }
               return;
             }
+          
+            
+            if (meta && meta.type === 'rqmtSource:removed' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'rqmtSource');
+              return;
+          }
+            
+          if (meta && meta.type === 'rqmtSource:changed' && meta.payload) {
+            const { rowIndex, sourceIndex } = meta.payload;
+            const viewKey = `${rowIndex}-rqmtSource`;
+            const view = this.activeViews.get(viewKey);
+            
+            // if (view && typeof view.updateSourceBlock === 'function') {
+            //     view.updateSourceBlock(sourceIndex);
+            // } else {
+                this.updateCell(rowIndex, 'rqmtSource');
+            // }
+            return;
+        }
+
+            if (meta && meta.type === 'limit:added' && meta.payload) {
+              console.log('Limit added event received', meta.payload);
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+            }
+
+            if (meta && meta.type === 'limit:intervalAdded' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:intervalRemoved' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:thresholdAdded' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:thresholdRemoved' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:intervalChanged' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:thresholdChanged' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
+          
+          if (meta && meta.type === 'limit:mainChanged' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateCell(rowIndex, 'limit');
+              return;
+          }
 
             if (meta && meta.type === 'section:titleChanged' && meta.payload) {
               const { oldTitle, newTitle } = meta.payload;
@@ -46,30 +123,80 @@ class ScheduleView {
             }
             if (meta && meta.type === 'taskDuration:added' && meta.payload) {
               const { rowIndex } = meta.payload;
-              this.updateTaskDurationCell(rowIndex);
-              return;
-          }
-  
-          if (meta && meta.type === 'taskDuration:changed' && meta.payload) {
-              const { rowIndex, durationIndex } = meta.payload;
-              this.updateTaskDurationInRow(rowIndex, durationIndex);
-              return;
-          }
-  
-          if (meta && meta.type === 'taskDuration:removed' && meta.payload) {
-              const { rowIndex } = meta.payload;
-              this.updateTaskDurationCell(rowIndex);
+              const viewKey = `${rowIndex}-taskDuration`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.addDurationBlock === 'function') {
+                  // Гранулярное обновление - добавляем только новый блок
+                  view.addDurationBlock();
+              } else {
+                  // Если view нет, обновляем всю ячейку
+                  this.updateCell(rowIndex, 'taskDuration');
+              }
               return;
           }
           
+          if (meta && meta.type === 'taskDuration:changed' && meta.payload) {
+              const { rowIndex, durationIndex, field } = meta.payload;
+              const viewKey = `${rowIndex}-taskDuration`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.updateDurationBlock === 'function') {
+                  // Гранулярное обновление - обновляем только измененный блок
+                  view.updateDurationBlock(durationIndex);
+              } else {
+                  this.updateCell(rowIndex, 'taskDuration');
+              }
+              return;
+          }
+          
+          if (meta && meta.type === 'taskDuration:removed' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              // При удалении нужно полностью перерисовать, так как индексы сдвигаются
+              this.updateCell(rowIndex, 'taskDuration');
+              return;
+          }
+          
+          if (meta && meta.type === 'personnel:added' && meta.payload) {
+            const { rowIndex } = meta.payload;
+            const viewKey = `${rowIndex}-personnel`;
+            const view = this.activeViews.get(viewKey);
+            
+            if (view && typeof view.addPersonnelBlock === 'function') {
+                view.addPersonnelBlock();
+            } else {
+                this.updateCell(rowIndex, 'personnel');
+            }
+            return;
+        }
+        
+        if (meta && meta.type === 'personnel:changed' && meta.payload) {
+            const { rowIndex, personnelIndex } = meta.payload;
+            const viewKey = `${rowIndex}-personnel`;
+            const view = this.activeViews.get(viewKey);
+            
+            if (view && typeof view.updatePersonnelBlock === 'function') {
+                view.updatePersonnelBlock(personnelIndex);
+            } else {
+                this.updateCell(rowIndex, 'personnel');
+            }
+            return;
+        }
+        
+        if (meta && meta.type === 'personnel:removed' && meta.payload) {
+            const { rowIndex } = meta.payload;
+            this.updateCell(rowIndex, 'personnel');
+            return;
+        }
+        
 
 
             if (meta && meta.type === 'applicability:changed' && meta.payload) {
               const p = meta.payload;
 
               console.log('granular event payload:', meta);
-              if (p.field === 'limit' || p.limitIndex !== undefined) {
-                this.updateLimitInRow(p.rowIndex, p.limitIndex);
+              if (p.field === 'limit') {
+                this.forceRenderCell(p.rowIndex, 'limit');
                 return;
               }
 
@@ -77,18 +204,30 @@ class ScheduleView {
                 this.updateTaskDurationInRow(p.rowIndex, p.durationIndex);
                 return;
               }
-
-              if (p.field === 'workAreaGroup' && this.isZoneGroup(p.rowIndex, p.groupIndex)) {
-                this.updateZoneCell(p.rowIndex);
+            
+            // На новые (используем методы модели):
+            if (p.field === 'workAreaGroup' && this.model.isZoneGroup(p.rowIndex, p.groupIndex)) {
+                this.updateCell(p.rowIndex, 'zoneNumber');
                 return;
-                
             }
             
-            // Обработка workAreaGroup для доступа
-              if (p.field === 'workAreaGroup' && this.isAccessGroup(p.rowIndex, p.groupIndex)) {
-                  this.updateAccessPointCell(p.rowIndex);
-                  return;
+            if (p.field === 'workAreaGroup' && this.model.isAccessGroup(p.rowIndex, p.groupIndex)) {
+                this.updateCell(p.rowIndex, 'accessPoint');
+                return;
+            }
+
+            if (p.field === 'personnel') {
+              const viewKey = `${p.rowIndex}-personnel`;
+              const view = this.activeViews.get(viewKey);
+              
+              if (view && typeof view.updatePersonnelBlock === 'function' && p.personnelIndex !== undefined) {
+                  view.updatePersonnelBlock(p.personnelIndex);
+              } else {
+                  this.updateCell(p.rowIndex, 'personnel');
               }
+              return;
+          }
+
               // можно добавить другие обработчики granular events: field, cell, row
               if (p.field) {
                 this.updateCell(p.rowIndex, p.field);
@@ -105,16 +244,59 @@ class ScheduleView {
               }
             }
 
-            if (meta && meta.type === 'applicability:removed' && meta.payload) {
+            if (meta && meta.type === 'remarks:changed' && meta.payload) {
               const p = meta.payload;
+              console.log('Remarks changed event:', p);
               
-              if (p.target === 'taskDuration') {
-                this.updateTaskDurationInRow(p.rowIndex, p.durationIndex);
+              // Обновляем соответствующий элемент с использованием прямых данных
+              if (p.target === 'limit') {
+                this.updateLimitInRow(p.rowIndex, p.limitIndex);
+              } else if (p.target === 'workArea') {
+                // Определяем тип группы через модель
+                if (this.model.isZoneGroup(p.rowIndex, p.groupIndex)) {
+                    this.updateCell(p.rowIndex, 'zoneNumber'); // TODO: убрать примечания из зоны
+                } else {
+                    this.updateCell(p.rowIndex, 'accessPoint');
+                }
                 return;
+            } else if (p.target === 'task') {
+              this.updateTaskDescrRemarks(p.rowIndex);  // ← НОВЫЙ МЕТОД
+            }
+            return;
+          }
+
+            if (meta && meta.type === 'remarks:added' && meta.payload) {
+              const p = meta.payload;
+              console.log('Remarks added event:', p);
+              
+              // Немедленно обновляем соответствующий элемент
+              if (p.targetType === 'limit') {
+                this.updateLimitInRow(p.rowIndex, p.index);
+              } else if (p.targetType === 'workArea') {
+                // Определяем тип группы через модель
+                if (this.model.isZoneGroup(p.rowIndex, p.index)) {
+                    this.updateCell(p.rowIndex, 'zoneNumber');
+                } else {
+                    this.updateCell(p.rowIndex, 'accessPoint');
+                }
+                
+                // Фокусируемся на поле примечания через небольшую задержку
+                setTimeout(() => {
+                    this.focusRemarksField(p.rowIndex, p.targetType, p.index);
+                }, 100);
+                
+                return;
+            } else if (p.targetType === 'task') {
+                this.updateTaskDescrRemarks(p.rowIndex, 'taskDescr');
               }
               
-              // ... остальная логика ...
-            }
+              // Фокусируемся на поле примечания через небольшую задержку
+              setTimeout(() => {
+                this.focusRemarksField(p.rowIndex, p.targetType, p.index);
+              }, 100);
+              
+              return;
+          }
           } catch (err) {
             console.error('handle model change error', err);
           }
@@ -162,7 +344,193 @@ class ScheduleView {
         console.error('Failed to clear applicability from view:', err);
       }
     });
+
+
+    this.setEditMode = (editable) => {
+      this.editable = editable;
+      this.updateEditMode();
+  };
+  
+  this.setPreviewMode = (previewMode) => {
+      this.previewMode = previewMode;
+      this.updatePreviewMode();
+  };
+    
   }
+
+
+  setupModeListeners() {
+    // Можно слушать изменения классов на body
+    // или события от контроллера
+    document.addEventListener('DOMContentLoaded', () => {
+        this.updateFromGlobalState();
+    });
+}
+
+
+updateFromGlobalState() {
+  const newPreviewMode = document.body.classList.contains('preview-mode');
+  const newEditMode = document.body.classList.contains('edit-mode');
+  
+  if (newPreviewMode !== this.previewMode) {
+      this.previewMode = newPreviewMode;
+      this.updatePreviewMode();
+  }
+  
+  if (newEditMode !== this.editable) {
+      this.editable = newEditMode;
+      this.updateEditMode();
+  }
+}
+
+setEditMode(editable) {
+  this.editable = editable;
+  this.updateEditMode();
+  this.setEditable(editable);
+}
+
+// Устанавливаем режим предпросмотра (вызывается контроллером)
+setPreviewMode(previewMode) {
+  this.previewMode = previewMode;
+  this.updatePreviewMode();
+}
+
+updateEditMode() {
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updateEditMode) {
+          view.updateEditMode(this.editable && !this.previewMode);
+      }
+  });
+  this.setEditable(this.editable);
+  // Важно: обновляем ТОЛЬКО ячейки, которые должны быть редактируемыми
+  // Раньше редактировались не все ячейки, а только определенные
+  this.updateEditableCells(this.editable);
+  
+  // Обновляем видимость action buttons
+  this.updateActionButtons();
+}
+
+  handlePreviewModeChange(previewMode) {
+    // Обновляем все активные представления
+    this.activeViews.forEach((view, key) => {
+        if (view.setPreviewMode) {
+            view.setPreviewMode(previewMode);
+        }
+    });
+    
+    // Обновляем видимость кнопок
+    this.updateButtonsVisibility();
+}
+
+
+
+updateButtonsVisibility() {
+  const isPreviewMode = document.body.classList.contains('preview-mode');
+  
+  // Показываем/скрываем кнопки действий
+  if (isPreviewMode) {
+      this.$container.find('.action-button, .action-button-td').addClass('preview-hidden');
+  } else if (this.editable) {
+      this.$container.find('.action-button, .action-button-td').removeClass('preview-hidden');
+  }
+}
+
+  initPreviewListeners() {
+    document.addEventListener('previewModeChanged', (event) => {
+        this.previewMode = event.detail.previewMode;
+        this.updatePreviewMode();
+    });
+  }
+
+  updatePreviewMode() {
+    if (this.previewMode) {
+        // В режиме предпросмотра отключаем редактирование всех ячеек
+        this.$container.find('[contenteditable="true"]').prop('contenteditable', false);
+    } else if (this.editable) {
+        // Если выключили предпросмотр и включено редактирование
+        // Восстанавливаем редактируемость ТОЛЬКО для разрешенных ячеек
+        this.disablePreviewMode()
+        this.updateEditableCells(this.editable);
+    }
+    
+    // Обновляем все активные представления
+    this.activeViews.forEach((view, key) => {
+        if (view.setPreviewMode) {
+            view.setPreviewMode(this.previewMode);
+        }
+    });
+    
+    // Обновляем видимость action buttons
+    this.updateActionButtons();
+}
+
+updateActionButtons() {
+  if (this.previewMode || !this.editable) {
+      this.$container.find('.action-button, .action-button-td').addClass('hidden');
+  } else {
+      this.$container.find('.action-button, .action-button-td').removeClass('hidden');
+  }
+}
+
+enablePreviewMode() {
+  // Добавляем класс предпросмотра к таблице
+  this.$container.addClass('preview-mode');
+  
+  // Отключаем редактирование ячеек
+  // this.$container.find('.editable-cell[contenteditable="true"]')
+  //     .each((index, cell) => {
+  //         const $cell = $(cell);
+  //         $cell.attr('data-was-editable', 'true');
+  //         $cell.prop('contenteditable', false);
+  //     });
+  
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updatePreviewMode) {
+          view.updatePreviewMode(true);
+      }
+  });
+  
+  // Обновляем видимость кнопок в заголовках разделов
+  this.$container.find('.section-header .btn').addClass('preview-hidden');
+}
+
+// Выключение режима предпросмотра
+disablePreviewMode() {
+  // Убираем класс предпросмотра
+  this.$container.removeClass('preview-mode');
+  
+  // Восстанавливаем редактирование ячеек (только если включен режим редактирования)
+  if (this.editable) {
+      this.$container.find('.editable-cell[data-was-editable="true"]')
+          .each((index, cell) => {
+              $(cell).prop('contenteditable', true);
+          });
+  }
+  
+  // Обновляем все активные представления
+  this.activeViews.forEach((view, key) => {
+      if (view.updatePreviewMode) {
+          view.updatePreviewMode(false);
+      }
+  });
+  
+  // Восстанавливаем кнопки в заголовках разделов (только если включен режим редактирования)
+  if (this.editable) {
+      this.$container.find('.section-header .btn').removeClass('preview-hidden');
+  }
+}
+
+  initViewRegistry() {
+    ViewRegistry.register('taskDuration', TaskDurationView);
+    ViewRegistry.register('limit', LimitView);
+    ViewRegistry.register('rqmtSource', RqmtSourceView);
+    ViewRegistry.register('zoneNumber', ZoneView);
+    ViewRegistry.register('accessPoint', AccessPointView);
+    ViewRegistry.register('personnel', PersonnelView);
+    // Позже добавим другие представления здесь
+}
 
   handleSectionTitleChange(oldTitle, newTitle) {
     // Обновляем все элементы с старым названием
@@ -225,6 +593,8 @@ class ScheduleView {
 
   renderTaskTable() {
     if (this.$table) this.$table.remove();
+    this.activeViews.forEach(view => view.destroy());
+    this.activeViews.clear();
     this.$table = $('<table>', { class: 'table table-bordered schedule-table' });
 
     const tasks = this.model.getFilteredTasks();
@@ -241,25 +611,37 @@ class ScheduleView {
     // В методе renderTaskTable замените блок с title:
     if (title) {
       const $titleRow = $('<tr>')
-          .append($('<td>', { colspan: headers.length, class: 'common-info-cell text-center' })
-              .append(
-                  $('<div>').addClass('d-flex align-items-center justify-content-center position-relative')
-                      .append(
-                          $('<span>')
-                              .addClass('section-title editable-section-title')
-                              .text(title)
-                              .attr('data-original-title', title),
-                              // .on('dblclick', (e) => {
-                              //     this.editSectionTitle($(e.target), title);
-                              // }),
-                          $('<button>', { 
-                              class: 'btn btn-sm btn-outline-primary ml-2 add-section-btn add-button-row edit-mode-btn',
+          .append($('<td>', { 
+              colspan: headers.length, 
+              class: 'common-info-cell text-center' 
+          }).append(
+              $('<div>').addClass('d-flex align-items-center justify-content-center position-relative')
+                  .append(
+                      $('<span>')
+                          .addClass('section-title editable-section-title')
+                          .text(title)
+                          .attr('data-original-title', title),
+                      
+                      // Создаем кнопку добавления
+                      (() => {
+                          const $addButton = $('<button>', { 
+                              class: 'btn btn-sm btn-outline-primary btn-icon btn-add btn-square edit-mode-btn',
                               style: 'right: 10px;' 
                           })
-                              .text('+')
-                              .on('click', () => this.model.addNewSection())
-                      )
-              ));
+                          .text('+')
+                          .on('click', () => this.model.addNewSection());
+                          
+                          // Управляем видимостью в зависимости от режима редактирования
+                          if (!this.editable) {
+                              $addButton.hide();
+                          } else {
+                              $addButton.show();
+                          }
+                          
+                          return $addButton;
+                      })()
+                  )
+          ));
       this.$table.append($('<thead>').append($titleRow));
   }
 
@@ -281,7 +663,7 @@ class ScheduleView {
                             this.editSectionTitle($(e.target), subtitleText);
                         }),
                     $('<button>', {
-                        class: 'btn btn-sm ml-2 btn-outline-primary add-task-btn add-section-btns edit-mode-btn',
+                        class: 'btn btn-sm ml-2 btn-outline-primary btn-add btn-icon btn-square edit-mode-btn',
                         'data-task-title': task.taskTitle
                     })
                     .text('+')
@@ -327,13 +709,28 @@ class ScheduleView {
         }
 
         if (h.key === 'limit') {
-          this.renderLimitCell($cell, task.limits || [], rowIndex);
+          // Используем ViewRegistry для создания представления
+          const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+          
+          // Сохраняем представление для последующего обновления
+          const viewKey = `${rowIndex}-${h.key}`;
+          this.activeViews.set(viewKey, view);
+          
+          // Рендерим и добавляем в ячейку
+          $cell.append(view.render());
           $row.append($cell);
           return;
         }
 
         if (h.key === 'personnel') {
-          this.renderPersonnelCell($cell, task, rowIndex);
+          const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+          
+          // Сохраняем представление для последующего обновления
+          const viewKey = `${rowIndex}-${h.key}`;
+          this.activeViews.set(viewKey, view);
+          
+          // Рендерим и добавляем в ячейку
+          $cell.append(view.render());
           $row.append($cell);
           return;
         }
@@ -345,10 +742,18 @@ class ScheduleView {
         }
 
         if (h.key === 'taskDuration') {
-          this.renderTaskDurationCell($cell, task, rowIndex);
+          // Используем ViewRegistry для создания представления
+          const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+          
+          // Сохраняем представление для последующего обновления
+          const viewKey = `${rowIndex}-${h.key}`;
+          this.activeViews.set(viewKey, view);
+          
+          // Рендерим и добавляем в ячейку
+          $cell.append(view.render());
           $row.append($cell);
           return;
-        }
+      }
 
         // Добавляем применимости (если есть)
         // Добавляем применимости для полей с allowApplic
@@ -380,37 +785,22 @@ class ScheduleView {
           }
           
           $contentContainer.append($descrContent);
-          
-          // Добавляем примечание, если есть
+        
+
           if (task.remarks != undefined) {
-            const $remarksBlock = $('<div>').addClass('remarks-block');
-
-            if (task.fieldApplicabilities['remarks']){
-              $remarksBlock.append(this.renderApplicTag(task.fieldApplicabilities['remarks'], true, rowIndex, 'remarks'))
-            }
-            $remarksBlock.append(
-              $('<div>').addClass('remarks-label').text('Примечание:'),
-              $('<div>').addClass('remarks-text').text(task.remarks)
-            );
-            $contentContainer.append($remarksBlock);
-
-            if (h.editable) {
-              $remarksBlock.on('dblclick', () => {
-                const newText = prompt('Редактировать примечание:', task.remarks);
-                if (newText !== null) {
-                  this.model.updateTaskField(rowIndex, 'remarks', newText);
-                }
-              }).css('cursor', 'pointer');
+            const $remarksBlock = this.renderRemarksField(task.remarks, rowIndex, 'task');
+            if ($remarksBlock) {
+              $contentContainer.append($remarksBlock);
             }
           }
           
-          // Добавляем режим контроля, если есть
+          // Добавляем режим контроля, если есть TODO убрать мб
           if (task.supervisorLevelCode != undefined) {
             const $supervisorBlock = $('<div>').addClass('supervisor-block');
             
-            $supervisorBlock.append(
-                $('<div>').addClass('supervisor-label').text('Режим контроля:')
-            );
+            // $supervisorBlock.append(
+            //     $('<div>').addClass('supervisor-label').text('Режим контроля:')
+            // );
             
             // Выпадающий список для режима контроля
             const $supervisorSelect = $('<select>').addClass('supervisor-level-select e');
@@ -448,24 +838,41 @@ class ScheduleView {
           return;
         }
 
-        if (h.key === 'rqmtSource'){ // TODO: как-то это исправить
-          this.renderRqmtSourceCell($cell, task, rowIndex);
+        if (h.key === 'rqmtSource') {
+          // Используем ViewRegistry для создания представления
+          const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+          
+          // Сохраняем представление для последующего обновления
+          const viewKey = `${rowIndex}-${h.key}`;
+          this.activeViews.set(viewKey, view);
+          
+          // Рендерим и добавляем в ячейку
+          $cell.append(view.render());
           $row.append($cell);
           return;
-        }
+      }
 
         
-        if (h.key === 'zoneNumber') {
-          this.renderZoneCell($cell, task, rowIndex);
-          $row.append($cell);
-          return;
-        }
-      
-        if (h.key === 'accessPoint') {
-            this.renderAccessPointCell($cell, task, rowIndex);
-            $row.append($cell);
-            return;
-        }
+      if (h.key === 'zoneNumber') {
+        // Используем ViewRegistry
+        const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+        const viewKey = `${rowIndex}-${h.key}`;
+        this.activeViews.set(viewKey, view);
+        $cell.append(view.render());
+        $row.append($cell);
+        return;
+    }
+  
+    // Заменяем старую логику accessPoint
+    if (h.key === 'accessPoint') {
+        // Используем ViewRegistry
+        const view = ViewRegistry.create(h.key, this.model, rowIndex, this.editable);
+        const viewKey = `${rowIndex}-${h.key}`;
+        this.activeViews.set(viewKey, view);
+        $cell.append(view.render());
+        $row.append($cell);
+        return;
+    }
 
         if (h.key === 'taskCode') { // TODO: где-то добавить обновление в модели. Написать в тот чат где знает что за модель. и приплесть то что снизу написано про h.editble
           const dict = DictionariesTC.getDictionary("taskCodeDict");
@@ -576,21 +983,74 @@ class ScheduleView {
     $cell.text(value);
 }
 
-  setEditable(editable) {
-    this.editable = editable;
-    if (!this.$table) return;
-    this.$table.toggleClass("disable", !editable);
+updateEditableCells(editable) {
+  if (!this.$table) return;
+  
 
-    this.$table.find('td.editable-cell div.editable-text')
-      .attr('contenteditable', editable);
 
-    const $editButtons = $(document).find('.edit-mode-btn');
-    if (editable) {
-      $editButtons.show();
-    } else {
-      $editButtons.hide();
-    }
+  this.activeViews.forEach((view, key) => {
+    const [rowIndex, colKey] = key.split('-');
+    this.forceRenderCell(parseInt(rowIndex), colKey);
+  });
+
+  // Показываем/скрываем кнопки редактирования
+  const $editButtons = $(document).find('.edit-mode-btn');
+  if (editable) {
+    $editButtons.show();
+    // Показываем все блоки примечаний в режиме редактирования
+    this.$table.find('.remarks-block').show();
+  } else {
+    $editButtons.hide();
+    // Скрываем пустые примечания в режиме просмотра
+    this.$table.find('.remarks-block').each(function() {
+      const $block = $(this);
+      const $text = $block.find('.remarks-text');
+      if (!$text.text().trim()) {
+        $block.hide();
+      }
+    });
   }
+}
+
+setEditable(editable) {
+  this.editable = editable;
+  if (!this.$table) return;
+  
+  this.$table.toggleClass("disable", !editable);
+
+  // Обновляем обычные редактируемые ячейки
+  this.$table.find('td.editable-cell div.editable-text')
+    .attr('contenteditable', editable);
+
+  // Обновляем поля примечаний
+  const $remarksTexts = this.$table.find('.remarks-text');
+  $remarksTexts.attr('contenteditable', editable);
+
+  this.activeViews.forEach((view, key) => {
+    view.editable = editable;
+    // Принудительно обновляем отображение
+    const [rowIndex, colKey] = key.split('-');
+    this.forceRenderCell(parseInt(rowIndex), colKey);
+  });
+
+  // Показываем/скрываем кнопки редактирования
+  const $editButtons = $(document).find('.edit-mode-btn');
+  if (editable) {
+    $editButtons.show();
+    // Показываем все блоки примечаний в режиме редактирования
+    this.$table.find('.remarks-block').show();
+  } else {
+    $editButtons.hide();
+    // Скрываем пустые примечания в режиме просмотра
+    this.$table.find('.remarks-block').each(function() {
+      const $block = $(this);
+      const $text = $block.find('.remarks-text');
+      if (!$text.text().trim()) {
+        $block.hide();
+      }
+    });
+  }
+}
 
   updateView(isEditMode) {
     this.editable = isEditMode;
@@ -598,142 +1058,7 @@ class ScheduleView {
     this.setEditable(isEditMode);
   }
 
-  
 
-  renderLimitCell($cell, limits, rowIndex) {
-    $cell.empty();
-    const $limitContainer = $('<div>').addClass('limit-container');
-    $cell.append($limitContainer);
-    
-    limits.forEach((block, bi) => {
-      $limitContainer.append(this.renderSingleLimitBlock(block, bi, rowIndex));
-    });
-    
-    const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary add-limit-btn edit-mode-btn')
-      .text('Добавить предел')
-      .on('click', () => {
-        this.model.addLimitToTask(rowIndex);
-        // После добавления перерисовываем ячейку limit
-        this.renderLimitCell($cell, this.model.getFilteredTasks()[rowIndex].limits, rowIndex);
-      });
-    
-    if (!this.editable){
-      $addButton.hide();
-    }else{
-      $addButton.show();
-    }
-    const $divButton = $('<div>').attr('style', 'display: flex; justify-content: center; margin-top: 5px;');
-    $divButton.append($addButton);
-    $limitContainer.append($divButton);
-    
-  }
-
-  renderSingleLimitBlock(block, blockIndex, rowIndex) {
-    const $block = $('<div>')
-      .addClass('limit-block')
-      .attr('data-limit-index', blockIndex)
-      .attr('data-task-index', rowIndex);
-
-    const $applicTag = this.renderLimitApplic(block, rowIndex, blockIndex);
-    if ($applicTag) {
-        $block.append($applicTag);
-    }
-
-    const $header = $('<div>').addClass('limit-header');
-
-    const $typeSelect = $('<select>').addClass('limit-type-select')
-      .append('<option value="po">po</option>')
-      .append('<option value="pe">pe</option>')
-      .append('<option value="oc">oc</option>')
-      .val(block.limitType)
-      .on('change', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'limitType', e.target.value);
-        $(e.target).closest('.limit-block').find('.limit-condition-input').toggle(e.target.value === 'oc');
-      });
-
-    const $conditionInput = $('<input type="text">').addClass('limit-condition-input')
-      .val(block.limitCond || '')
-      .toggle(block.limitType === 'oc')
-      .on('blur', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'limitCond', e.target.value);
-      });
-
-    $header.append($typeSelect, $conditionInput);
-    $block.append($header);
-
-    const $deleteButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-danger remove-limit-btn edit-mode-btn')
-      .html('&times;')
-      .attr('title', 'Удалить предел')
-      .on('click', () => {
-        if (confirm('Удалить этот предел?')) {
-          this.model.removeLimitFromTask(rowIndex, blockIndex);
-        }
-      });
-    $header.append($deleteButton);
-
-    if (!this.editable) {
-      $deleteButton.hide();
-    } else {
-      $deleteButton.show();
-    }
-
-    const $intervalRow = $('<div>').addClass('limit-row');
-    $intervalRow.append($('<div>').addClass('limit-label').text('Интервал:'));
-
-    const $intervalValue = $('<input type="text">').addClass('limit-value-input')
-      .val(block.intervalValue)
-      .on('blur', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'intervalValue', e.target.value);
-      });
-
-    const $intervalUnit = $('<select>').addClass('limit-unit-select')
-      .append(UNITS.map(u => `<option value="${u.key}">${u.label}</option>`))
-      .val(block.intervalUnit)
-      .on('change', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'intervalUnit', e.target.value);
-      });
-
-    $intervalRow.append($intervalValue, $intervalUnit);
-    $block.append($intervalRow);
-
-    const $thresholdRow = $('<div>').addClass('limit-row');
-    $thresholdRow.append($('<div>').addClass('limit-label').text('Порог:'));
-
-    const $thresholdValue = $('<input type="text">').addClass('limit-value-input')
-      .val(block.thresholdValue)
-      .on('blur', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'thresholdValue', e.target.value);
-      });
-
-    const $thresholdUnit = $('<select>').addClass('limit-unit-select')
-      .append(UNITS.map(u => `<option value="${u.key}">${u.label}</option>`))
-      .val(block.thresholdUnit)
-      .on('change', e => {
-        this.model.updateLimitField(rowIndex, blockIndex, 'thresholdUnit', e.target.value);
-      });
-
-    $thresholdRow.append($thresholdValue, $thresholdUnit);
-    $block.append($thresholdRow);
-
-    return $block;
-  }
-
-
-  renderLimitApplic(block, rowIndex, blockIndex) {
-    if (!block.applicRefId) return null;
-    return this.renderApplicTag(
-      {
-        id: block.applicRefId,
-        displayValue: this.model.getApplicDisplayValue(block.applicRefId)
-      },
-      true,
-      rowIndex,
-      "limit",
-      blockIndex  
-    ).addClass('limit-applic-tag');
-  }
   
 
   // ---- applic
@@ -762,8 +1087,8 @@ class ScheduleView {
     if (withDelete && rowIndex !== null && targetType !== null) {
       $tag.append(
         $('<button>')
-          .addClass('btn btn-xs delete-applic edit-mode-btn')
-          .html('&times')
+          .addClass('btn btn-xs btn-outline-danger btn-remove btn-icon btn-square delete-applic edit-mode-btn')
+          // .html('&times')
           .attr('title', 'Удалить применимость')
           .data('applic-id', applicId)
           .on('click', () => {
@@ -853,571 +1178,6 @@ class ScheduleView {
     $cell.empty().append(this.renderApplicList(task.applicabilities));
   }
 
-  updateLimitInRow(rowIndex, limitIndex) {
-    console.log('updateLimitInRow: rowIndex=', rowIndex, 'limitIndex=', limitIndex);
-    try {
-      // Найдём задачу в модели
-      const tasks = this.model.getFilteredTasks();
-      if (!tasks || rowIndex < 0 || rowIndex >= tasks.length) return;
-      const task = tasks[rowIndex];
-      const limits = task.limits || [];
-      const block = limits[limitIndex];
-      if (!block) return;
-
-      // Найдём строку в текущей таблице
-      if (!this.$table) return;
-      let $row = this.$table.find(`tr[data-task-index="${rowIndex}"]`);
-      if (!$row.length) {
-        const idVal = task.taskIdent || task.taskCode;
-        if (idVal) $row = this.$table.find(`tr[data-task-id="${idVal}"]`);
-      }
-      if (!$row.length) return;
-
-      // Найдём контейнер limit и соответствующий блок
-      const $limitContainer = $row.find('.limit-container').first();
-      if (!$limitContainer.length) return;
-
-      // Если есть конкретный .limit-block с data-limit-index, заменим его; иначе заменим по порядку
-      let $existingBlock = $limitContainer.find(`.limit-block[data-limit-index="${limitIndex}"]`);
-      if (!$existingBlock.length) {
-        // fallback: по порядку
-        $existingBlock = $limitContainer.find('.limit-block').eq(limitIndex);
-      }
-
-      // Создаём новый блок через существующий рендерер
-      const $newBlock = this.renderSingleLimitBlock(block, limitIndex, rowIndex);
-      // Установим data-limit-index на новом блоке для дальнейших операций
-      $newBlock.attr('data-limit-index', limitIndex);
-
-      if ($existingBlock.length) {
-        $existingBlock.replaceWith($newBlock);
-      } else {
-        // если нет — append
-        $limitContainer.append($newBlock);
-      }
-    } catch (err) {
-      console.error('updateLimitInRow error', err);
-      // fallback
-      this.render();
-    }
-  }
-
-  renderPersonnelCell($cell, task, rowIndex) {
-    $cell.empty();
-    const $container = $('<div>').addClass('personnel-container');
-    
-    // Обрабатываем каждый personnel
-    (task.personnel || []).forEach((person, index) => {
-      const $personBlock = $('<div>')
-        .addClass('personnel-block')
-        .attr('data-row-index', rowIndex)
-        .attr('data-personnel-index', index);
-
-        
-      const $header = $('<div>').addClass('personnel-header');
-
-      if (person.applicRefId) {
-        const applicData = this.model.applicMap[person.applicRefId];
-        if (applicData) {
-          const $applicTag = this.renderApplicTag(applicData, true, rowIndex,"personnel", index);
-          $header.append($applicTag);
-        }
-      }  
-      
-      
-      // Заголовок блока с кнопкой удаления
-      
-      // Кнопка удаления
-      const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger remove-personnel-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить блок')
-        .on('click', () => {
-          if (confirm('Удалить этот блок?')) {
-            this.model.removePersonnel(rowIndex, index);
-          }
-        });
-
-      const $divDeleteBtn = $('<div>').attr('style', 'display: flex; justify-content: center;');
-      $divDeleteBtn.append($deleteButton);
-      $header.append($divDeleteBtn);
-      
-      $personBlock.append($header);
-      
-      // Поле для ввода количества человек
-      const $numContainer = $('<div>').addClass('personnel-input-container');
-      $numContainer.append($('<label>').text('Кол-во:'));
-      
-      const $numInput = $('<input>')
-        .attr('type', 'number')
-        .addClass('personnel-num-input')
-        .val(person.numRequired)
-        .on('change', () => {
-          this.model.updatePersonnelField(rowIndex, index, 'numRequired', $numInput.val());
-        });
-      
-      $numContainer.append($numInput);
-      $personBlock.append($numContainer)
-      
-      // Выпадающий список для специализации
-      const $catContainer = $('<div>').addClass('personnel-input-container-spec');
-      $catContainer.append($('<label>').text('Специализация:'));
-      
-      const $catSelect = $('<select>').addClass('personnel-cat-select');
-      // Заполняем значениями из справочника
-      const personCatDict = DictionariesTC.getDictionary("personCatDict");
-      Object.entries(personCatDict).forEach(([key, value]) => {
-        $catSelect.append($('<option>').val(key).text(value));
-      });
-      $catSelect.val(person.personCategoryCode);
-      
-      $catSelect.on('change', () => {
-        this.model.updatePersonnelField(rowIndex, index, 'personCategoryCode', $catSelect.val());
-      });
-      
-      $catContainer.append($catSelect);
-      $personBlock.append($catContainer);
-      
-      // Добавляем применимость, если есть
-      
-      
-      $container.append($personBlock);
-    });
-    
-    const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary add-personnel-btn edit-mode-btn')
-      .text('+ Добавить блок')
-      .on('click', () => {
-        this.model.addPersonnel(rowIndex);
-      });
-      
-    const $divButton = $('<div>').attr('style', 'display: flex; justify-content: center; margin-top: 5px;');
-    $divButton.append($addButton);
-
-    $container.append($divButton);
-
-    if (!this.editable){
-      $addButton.hide();
-    }else{
-      $addButton.show();
-    }
-    
-    $cell.append($container);
-  }
-
-
-  renderZoneCell($cell, task, rowIndex) {
-    $cell.empty();
-    const $container = $('<div>').addClass('work-area-groups-container');
-    $cell.append($container);
-    
-    // Фильтруем группы, содержащие зоны
-    const zoneGroups = (task.workAreaLocationGroups || []).filter(group => 
-        group.type === 'zone' || group.zones.length > 0
-    );
-    
-    // Рендерим группы с зонами
-    zoneGroups.forEach((group, index) => {
-        // Находим оригинальный индекс группы в общем массиве
-        const originalGroupIndex = task.workAreaLocationGroups.indexOf(group);
-        $container.append(this.renderZoneGroup(group, originalGroupIndex, rowIndex));
-    });
-    
-    // Кнопка добавления группы зон
-    const $addButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-primary add-zone-group-btn edit-mode-btn')
-        .text('+').attr("title", "Добавить блок зон")
-        .on('click', () => {
-            this.model.addWorkAreaLocationGroup(rowIndex, 'zone');
-        });
-    
-    if (!this.editable) $addButton.hide();
-    
-    const $buttonContainer = $('<div>').attr('style', 'text-align: center; margin-top: 10px;');
-    $buttonContainer.append($addButton);
-    $container.append($buttonContainer);
-}
-
-  renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger remove-zone-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-  }
-
-  renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger remove-zone-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-  }
-
-renderWorkAreaLocationGroup(group, groupIndex, rowIndex) {
-    const $groupBlock = $('<div>')
-        .addClass('work-area-group-block')
-        .attr('data-group-index', groupIndex)
-        .attr('data-task-index', rowIndex);
-
-    // Заголовок блока с применимостью и кнопкой удаления
-    const $header = $('<div>').addClass('work-area-group-header');
-    
-    // Применимость группы
-    if (group.applicRefId) {
-        const $applicTag = this.renderApplicTag(
-            {
-                id: group.applicRefId,
-                displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-            },
-            true,
-            rowIndex,
-            "workAreaGroup",
-            groupIndex
-        );
-        $header.append($applicTag);
-    }
-    
-    // Кнопка удаления группы
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger remove-group-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить блок')
-        .attr("style", "margin-top: 4px; margin-left: 4px;")
-        .on('click', () => {
-            if (confirm('Удалить этот блок?')) {
-                this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    $header.append($deleteButton);
-    $groupBlock.append($header);
-
-    // Содержимое группы - зоны или точки доступа
-    const $content = $('<div>').addClass('work-area-group-content');
-    
-    // Рендерим зоны
-    if (group.zones && group.zones.length > 0) {
-        const $zonesContainer = $('<div>').addClass('zones-container');
-        group.zones.forEach((zone, zoneIndex) => {
-            $zonesContainer.append(this.renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex));
-        });
-        
-        // Кнопка добавления зоны
-        const $addZoneButton = $('<button>')
-            .addClass('btn btn-sm btn-outline-secondary add-zone-btn edit-mode-btn')
-            .text('+').attr("title", "Добавить зону")
-            .on('click', () => {
-                this.model.addZoneToGroup(rowIndex, groupIndex);
-            });
-        
-        if (!this.editable) $addZoneButton.hide();
-        $zonesContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addZoneButton));
-        $content.append($zonesContainer);
-    }
-    
-    // Рендерим точки доступа
-    if (group.accessPoints && group.accessPoints.length > 0) {
-        const $accessContainer = $('<div>').addClass('access-points-container');
-        group.accessPoints.forEach((access, accessIndex) => {
-            $accessContainer.append(this.renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex));
-        });
-        
-        // Кнопка добавления точки доступа
-        const $addAccessButton = $('<button>')
-            .addClass('btn btn-sm btn-outline-secondary add-access-btn edit-mode-btn')
-            .text('+ Добавить доступ')
-            .on('click', () => {
-                this.model.addAccessPointToGroup(rowIndex, groupIndex);
-            });
-        
-        if (!this.editable) $addAccessButton.hide();
-        $accessContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addAccessButton));
-        $content.append($accessContainer);
-    }
-    
-    $groupBlock.append($content);
-    return $groupBlock;
-}
-
-renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex) {
-    const $zoneBlock = $('<div>').addClass('zone-in-group');
-    
-    const $zoneSelect = $('<select>').addClass('zone-number-select');
-    const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-    Object.entries(zoneNumberDict).forEach(([key, value]) => {
-        $zoneSelect.append($('<option>').val(key).text(value));
-    });
-    $zoneSelect.val(zone.zoneNumber);
-    
-    $zoneSelect.on('change', e => {
-        this.model.updateZoneField(rowIndex, groupIndex, zoneIndex, 'zoneNumber', e.target.value);
-    });
-    
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-xs btn-outline-danger remove-zone-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить зону')
-        .on('click', () => {
-            if (confirm('Удалить эту зону?')) {
-                this.model.removeZoneFromGroup(rowIndex, groupIndex, zoneIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    
-    $zoneBlock.append($zoneSelect, $deleteButton);
-    return $zoneBlock;
-}
-
-renderAccessPointCell($cell, task, rowIndex) {
-  $cell.empty();
-  const $container = $('<div>').addClass('work-area-groups-container');
-  $cell.append($container);
-  
-  // Фильтруем группы, содержащие точки доступа
-  const accessGroups = (task.workAreaLocationGroups || []).filter(group => 
-      group.type === 'access' || group.accessPoints.length > 0
-  );
-  
-  // Рендерим группы с доступом
-  accessGroups.forEach((group, index) => {
-      // Находим оригинальный индекс группы в общем массиве
-      const originalGroupIndex = task.workAreaLocationGroups.indexOf(group);
-      $container.append(this.renderAccessGroup(group, originalGroupIndex, rowIndex));
-  });
-  
-  // Кнопка добавления группы доступа
-  const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary add-access-group-btn edit-mode-btn')
-      .text('+').attr("title", "Добавить блок точек доступа")
-      .on('click', () => {
-          this.model.addWorkAreaLocationGroup(rowIndex, 'access');
-      });
-  
-  if (!this.editable) $addButton.hide();
-  
-  const $buttonContainer = $('<div>').attr('style', 'text-align: center; margin-top: 10px;');
-  $buttonContainer.append($addButton);
-  $container.append($buttonContainer);
-}
-
-renderAccessGroup(group, groupIndex, rowIndex) {
-  const $groupBlock = $('<div>')
-      .addClass('work-area-group-block access-group')
-      .attr('data-group-index', groupIndex)
-      .attr('data-task-index', rowIndex);
-
-  // Заголовок блока с применимостью
-  const $header = $('<div>').addClass('work-area-group-header');
-  
-  // Применимость группы
-  if (group.applicRefId) {
-      const $applicTag = this.renderApplicTag(
-          {
-              id: group.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-          },
-          true,
-          rowIndex,
-          "workAreaGroup",
-          groupIndex
-      );
-      $header.append($applicTag);
-  }
-  
-  // Кнопка удаления группы
-  const $deleteButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-danger remove-group-btn edit-mode-btn')
-      .html('&times;')
-      .attr('title', 'Удалить блок')
-      .attr("style", "margin-top: 4px; margin-left: 4px;")
-      .on('click', () => {
-          if (confirm('Удалить этот блок?')) {
-              this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-          }
-      });
-  
-  if (!this.editable) $deleteButton.hide();
-  $header.append($deleteButton);
-  $groupBlock.append($header);
-
-  // Содержимое группы - точки доступа
-  const $content = $('<div>').addClass('work-area-group-content');
-  
-  const $accessContainer = $('<div>').addClass('access-points-container');
-  group.accessPoints.forEach((access, accessIndex) => {
-      $accessContainer.append(this.renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex));
-  });
-  
-  // Кнопка добавления точки доступа
-  const $addAccessButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-secondary add-access-btn edit-mode-btn')
-      .text('+').attr("title", "Добавить точку доступа")
-      .on('click', () => {
-          this.model.addAccessPointToGroup(rowIndex, groupIndex);
-      });
-  
-  if (!this.editable) $addAccessButton.hide();
-  $accessContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px;').append($addAccessButton));
-  $content.append($accessContainer);
-  
-  $groupBlock.append($content);
-  return $groupBlock;
-}
-
-renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex) {
-  const $accessBlock = $('<div>').addClass('access-point-in-group');
-  
-  // Выбор номера точки доступа
-  const $numberSelect = $('<select>').addClass('access-point-number-select');
-  const accessPointDict = DictionariesTC.getDictionary("accessPointNumber");
-  Object.entries(accessPointDict || {}).forEach(([key, value]) => {
-      $numberSelect.append($('<option>').val(key).text(value));
-  });
-  $numberSelect.val(access.accessPointNumber);
-  
-  $numberSelect.on('change', e => {
-      this.model.updateAccessPointField(rowIndex, groupIndex, accessIndex, 'accessPointNumber', e.target.value);
-  });
-  
-  // Выбор типа точки доступа
-  const $typeSelect = $('<select>').addClass('access-point-type-select');
-  const accessTypeDict = DictionariesTC.getDictionary("accessPointType");
-  Object.entries(accessTypeDict || {}).forEach(([key, value]) => {
-      $typeSelect.append($('<option>').val(key).text(value));
-  });
-  $typeSelect.val(access.accessPointTypeValue);
-  
-  $typeSelect.on('change', e => {
-      this.model.updateAccessPointField(rowIndex, groupIndex, accessIndex, 'accessPointTypeValue', e.target.value);
-  });
-  
-  const $deleteButton = $('<button>')
-      .addClass('btn btn-xs btn-outline-danger remove-access-btn edit-mode-btn')
-      .html('&times;')
-      .attr('title', 'Удалить точку доступа')
-      .on('click', () => {
-          if (confirm('Удалить эту точку доступа?')) {
-              this.model.removeAccessPointFromGroup(rowIndex, groupIndex, accessIndex);
-          }
-      });
-  
-  if (!this.editable) $deleteButton.hide();
-  
-  $accessBlock.append($numberSelect, $typeSelect, $deleteButton);
-  return $accessBlock;
-}
-
-  renderSingleZoneBlock(zone, zoneIndex, rowIndex) {
-      const $block = $('<div>')
-          .addClass('zone-block')
-          .attr('data-zone-index', zoneIndex)
-          .attr('data-task-index', rowIndex);
-
-      // Применимость зоны
-      const $applicTag = this.renderZoneApplic(zone, rowIndex, zoneIndex);
-      if ($applicTag) {
-          $block.append($applicTag);
-      }
-
-      const $header = $('<div>').addClass('zone-header');
-
-      // Выпадающий список для номера зоны
-      const $zoneSelect = $('<select>').addClass('zone-number-select');
-      const zoneNumberDict = DictionariesTC.getDictionary("zoneNumber");
-      Object.entries(zoneNumberDict).forEach(([key, value]) => {
-          $zoneSelect.append($('<option>').val(key).text(value));
-      });
-      $zoneSelect.val(zone.zoneNumber);
-      
-      $zoneSelect.on('change', e => {
-          this.model.updateZoneField(rowIndex, zoneIndex, 'zoneNumber', e.target.value);
-      });
-
-      $header.append($zoneSelect);
-
-      // Кнопка удаления зоны
-      const $deleteButton = $('<button>')
-          .addClass('btn btn-sm btn-outline-danger remove-zone-btn edit-mode-btn')
-          .html('&times;')
-          .attr('title', 'Удалить зону')
-          .on('click', () => {
-              if (confirm('Удалить эту зону?')) {
-                  this.model.removeZoneFromTask(rowIndex, zoneIndex);
-              }
-          });
-
-      if (!this.editable) {
-          $deleteButton.hide();
-      } else {
-          $deleteButton.show();
-      }
-
-      $header.append($deleteButton);
-      $block.append($header);
-
-      return $block;
-  }
-
-  renderZoneApplic(zone, rowIndex, zoneIndex) {
-      if (!zone.applicRefId) return null;
-      return this.renderApplicTag(
-          {
-              id: zone.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(zone.applicRefId)
-          },
-          true,
-          rowIndex,
-          "zone",  // targetType
-          zoneIndex  
-      ).addClass('zone-applic-tag');
-  }
 
   updateZoneInRow(rowIndex, zoneIndex) {
       console.log('updateZoneInRow: rowIndex=', rowIndex, 'zoneIndex=', zoneIndex);
@@ -1459,121 +1219,6 @@ renderAccessPointInGroup(access, rowIndex, groupIndex, accessIndex) {
       }
   }
 
-  renderZoneGroup(group, groupIndex, rowIndex) {
-    const $groupBlock = $('<div>')
-        .addClass('work-area-group-block zone-group')
-        .attr('data-group-index', groupIndex)
-        .attr('data-task-index', rowIndex);
-
-    // Заголовок блока с применимостью
-    const $header = $('<div>').addClass('work-area-group-header');
-    
-    // Применимость группы
-    if (group.applicRefId) {
-        const $applicTag = this.renderApplicTag(
-            {
-                id: group.applicRefId,
-                displayValue: this.model.getApplicDisplayValue(group.applicRefId)
-            },
-            true,
-            rowIndex,
-            "workAreaGroup",
-            groupIndex
-        );
-        $header.append($applicTag);
-    }
-    
-    // Кнопка удаления группы
-    const $deleteButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger remove-group-btn edit-mode-btn')
-        .html('&times;')
-        .attr('title', 'Удалить блок')
-        .attr("style", "margin-top: 4px; margin-left: 4px;")
-        .on('click', () => {
-            if (confirm('Удалить этот блок?')) {
-                this.model.removeWorkAreaLocationGroup(rowIndex, groupIndex);
-            }
-        });
-    
-    if (!this.editable) $deleteButton.hide();
-    $header.append($deleteButton);
-    $groupBlock.append($header);
-
-    // Содержимое группы - зоны
-    const $content = $('<div>').addClass('work-area-group-content');
-    
-    const $zonesContainer = $('<div>').addClass('zones-container');
-    group.zones.forEach((zone, zoneIndex) => {
-        $zonesContainer.append(this.renderZoneInGroup(zone, rowIndex, groupIndex, zoneIndex));
-    });
-    
-    // Кнопка добавления зоны
-    const $addZoneButton = $('<button>')
-        .addClass('btn btn-sm btn-outline-secondary add-zone-btn edit-mode-btn')
-        .text('+').attr("title", "Добавить зону")
-        .on('click', () => {
-            this.model.addZoneToGroup(rowIndex, groupIndex);
-        });
-    
-    if (!this.editable) $addZoneButton.hide();
-    $zonesContainer.append($('<div>').attr('style', 'text-align: center; margin-top: 5px; margin-bottom: 5px').append($addZoneButton));
-    $content.append($zonesContainer);
-    
-    $groupBlock.append($content);
-    return $groupBlock;
-}
-  
-  updateZoneCell(rowIndex) {
-    const tasks = this.model.getFilteredTasks();
-    if (rowIndex < 0 || rowIndex >= tasks.length) return;
-    
-    const task = tasks[rowIndex];
-    const $table = $('table.schedule-table');
-    const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-    if (!$row.length) return;
-    
-    // Находим индекс колонки zoneNumber
-    const headers = this.model.getHeaders();
-    const zoneColIndex = headers.findIndex(h => h.key === 'zoneNumber');
-    if (zoneColIndex === -1) return;
-    
-    const $cell = $row.find('td').eq(zoneColIndex);
-    this.renderZoneCell($cell, task, rowIndex);
-  }
-
-  updateAccessPointCell(rowIndex) {
-    const tasks = this.model.getFilteredTasks();
-    if (rowIndex < 0 || rowIndex >= tasks.length) return;
-    
-    const task = tasks[rowIndex];
-    const $table = $('table.schedule-table');
-    const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-    if (!$row.length) return;
-    
-    // Находим индекс колонки accessPoint
-    const headers = this.model.getHeaders();
-    const accessColIndex = headers.findIndex(h => h.key === 'accessPoint');
-    if (accessColIndex === -1) return;
-    
-    const $cell = $row.find('td').eq(accessColIndex);
-    this.renderAccessPointCell($cell, task, rowIndex);
-  }
-
-  // Вспомогательные методы для определения типа группы
-isZoneGroup(rowIndex, groupIndex) {
-    const task = this.model.getFilteredTasks()[rowIndex];
-    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
-    const group = task.workAreaLocationGroups[groupIndex];
-    return group.zones && group.zones.length > 0;
-}
-
-isAccessGroup(rowIndex, groupIndex) {
-    const task = this.model.getFilteredTasks()[rowIndex];
-    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
-    const group = task.workAreaLocationGroups[groupIndex];
-    return group.accessPoints && group.accessPoints.length > 0;
-}
-
 renderAmtossCell($cell, task, rowIndex) {
   $cell.empty();
   const $container = $('<div>').addClass('amtoss-container');
@@ -1586,7 +1231,7 @@ renderAmtossCell($cell, task, rowIndex) {
   
   // Кнопка добавления MD
   const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary add-md-btn edit-mode-btn')
+      .addClass('btn btn-sm btn-outline-primary btn-add edit-mode-btn')
       .text('Добавить MD')
       .on('click', () => {
           if (this.dmCodeModal) {
@@ -1641,8 +1286,8 @@ renderDmRefBlock(dmRef, rowIndex, dmRefIndex) {
       });
   
   const $deleteButton = $('<button>')
-      .addClass('btn btn-xs btn-outline-danger delete-md-btn edit-mode-btn')
-      .html('&times;')
+      .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
+      // .html('&times;')
       .attr('title', 'Удалить MD')
       .on('click', () => {
           if (confirm('Удалить этот код модуля данных?')) {
@@ -1804,236 +1449,624 @@ changeTaskSection(rowIndex, task) {
   }, 500);
 }
 
-renderTaskDurationCell($cell, task, rowIndex) {
-  $cell.empty();
-  const $container = $('<div>').addClass('task-duration-container');
-  $cell.append($container);
-  
-  // Рендерим каждый блок taskDuration
-  (task.taskDurations || []).forEach((duration, index) => {
-      $container.append(this.renderSingleTaskDurationBlock(duration, index, rowIndex));
-  });
-  
-  // Кнопка добавления нового блока
-  const $addButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-primary add-task-duration-btn edit-mode-btn')
-      .text('+')
-      .attr('title', 'Добавить трудоёмкость')
-      .on('click', () => {
-          this.model.addTaskDuration(rowIndex);
-      });
-  
-  if (!this.editable)
-    $addButton.hide();
-  else
-    $addButton.show();
-  const $buttonContainer = $('<div>').attr('style', 'text-align: center; margin-top: 10px;');
-  $buttonContainer.append($addButton);
-  $container.append($buttonContainer);
-}
 
 /**
 * Рендерит один блок трудоёмкости
 */
-renderSingleTaskDurationBlock(duration, index, rowIndex) {
-  const $block = $('<div>')
-      .addClass('task-duration-block')
-      .attr('data-duration-index', index)
-      .attr('data-task-index', rowIndex);
 
-  // Применимость (только для productionMaintData с taskDuration)
-  if (duration.applicRefId) {
-      const $applicTag = this.renderApplicTag(
-          {
-              id: duration.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(duration.applicRefId)
-          },
-          true,
-          rowIndex,
-          "taskDuration",
-          index
-      );
-      $block.append($applicTag);
+
+renderRemarksField(remarks, rowIndex, targetType, targetIndex = null) {
+  console.log('Rendering remarks field:', { remarks, rowIndex, targetType, targetIndex, editable: this.editable });
+  
+  // ВАЖНОЕ ИЗМЕНЕНИЕ: всегда показываем блок если в XML есть remarks (даже пустой)
+  // или если мы в режиме редактирования
+  const shouldShow = remarks !== undefined && remarks !== null;
+  
+  if (!shouldShow && !this.editable) {
+    return null;
   }
 
-  const $header = $('<div>').addClass('task-duration-header');
-
-  // Кнопка удаления
-  const $deleteButton = $('<button>')
-      .addClass('btn btn-sm btn-outline-danger remove-task-duration-btn edit-mode-btn')
-      .html('&times;')
-      .attr('title', 'Удалить трудоёмкость')
-      .on('click', () => {
-          if (confirm('Удалить эту трудоёмкость?')) {
-              this.model.removeTaskDuration(rowIndex, index);
-          }
-      });
-
-  if (!this.editable)
-    $deleteButton.hide();
-  else
-    $deleteButton.show();
-
-  $header.append($deleteButton);
-  $block.append($header);
-
-  // Поля ввода для длительностей (только нужные)
-  const fields = [
-      { key: 'procedureDuration', label: 'Длительность:' },
-      { key: 'startupDuration', label: 'Подготовка:' }
-  ];
-
-  fields.forEach(field => {
-      const $row = $('<div>').addClass('task-duration-row');
-      $row.append($('<div>').addClass('task-duration-label').text(field.label));
-
-      const $input = $('<input type="text">')
-          .addClass('task-duration-input')
-          .val(duration[field.key])
-          .on('blur', e => {
-              this.model.updateTaskDurationField(rowIndex, index, field.key, e.target.value);
-          });
-
-      $row.append($input);
-      $block.append($row);
-  });
-
-  return $block;
+  const $container = $('<div>').addClass('remarks-block');
+  
+  // Заголовок "Примечание:"
+  const $label = $('<div>').addClass('remarks-label').text('Примечание:');
+  $container.append($label);
+  
+  // Поле для текста
+  const displayText = remarks || '';
+  const $textField = $('<div>')
+    .addClass('remarks-text')
+    .text(displayText)
+    .attr('data-row-index', rowIndex)
+    .attr('data-target-type', targetType);
+  
+  if (targetIndex !== null) {
+    $textField.attr('data-target-index', targetIndex);
+  }
+  
+  // Если в режиме редактирования - делаем редактируемым
+  if (this.editable) {
+    $textField.attr('contenteditable', 'true');
+    
+    // Обработчик сохранения при потере фокуса
+    $textField.on('blur', () => {
+      const newText = $textField.text().trim();
+      console.log('Remarks field blurred, saving:', newText);
+      this.saveRemarks(rowIndex, targetType, targetIndex, newText);
+    });
+    
+    // Обработчики клавиш
+    $textField.on('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        $textField.blur();
+      } else if (e.key === 'Escape') {
+        $textField.text(displayText).blur();
+      }
+    });
+  }
+  
+  $container.append($textField);
+  console.log('Remarks field rendered');
+  return $container;
 }
 
-updateTaskDurationCell(rowIndex) {
-  const tasks = this.model.getFilteredTasks();
-  if (rowIndex < 0 || rowIndex >= tasks.length) return;
-  
-  const task = tasks[rowIndex];
-  const $table = $('table.schedule-table');
-  const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-  if (!$row.length) return;
-  
-  // Находим индекс колонки taskDuration
-  const headers = this.model.getHeaders();
-  const durationColIndex = headers.findIndex(h => h.key === 'taskDuration');
-  if (durationColIndex === -1) return;
-  
-  const $cell = $row.find('td').eq(durationColIndex);
-  this.renderTaskDurationCell($cell, task, rowIndex);
+
+removeRemarks(rowIndex, targetType, targetIndex = null) {
+  // Просто сохраняем пустую строку - это удалит примечание
+  this.saveRemarks(rowIndex, targetType, targetIndex, '');
 }
 
 /**
-* Обновляет конкретный блок трудоёмкости в строке
-*/
-updateTaskDurationInRow(rowIndex, durationIndex) {
-  // Для простоты перерисовываем всю ячейку
-  // Можно оптимизировать, чтобы обновлять только конкретный блок
-  this.updateTaskDurationCell(rowIndex);
+ * Начинает редактирование примечания (когда кликаем на плейсхолдер)
+ */
+startRemarksEditing(rowIndex, targetType, targetIndex = null) {
+  const currentRemarks = this.model.getRemarks(targetType, rowIndex, targetIndex);
+  
+  // Находим соответствующий контейнер примечания
+  let $container = null;
+  
+  switch (targetType) {
+    case 'task':
+      $container = $(`tr[data-task-index="${rowIndex}"] .remarks-field-container`);
+      break;
+    case 'limit':
+      $container = $(`tr[data-task-index="${rowIndex}"] .limit-block[data-limit-index="${targetIndex}"] .remarks-field-container`);
+      break;
+    case 'workArea':
+      $container = $(`tr[data-task-index="${rowIndex}"] .work-area-group-block[data-group-index="${targetIndex}"] .remarks-field-container`);
+      break;
+  }
+  
+  if ($container.length > 0) {
+    const $inputField = $container.find('.remarks-input');
+    if ($inputField.length > 0) {
+      $inputField.focus();
+      this.selectAllText($inputField[0]);
+    }
+  } else {
+    // Если контейнера нет (примечание еще не создано), создаем его
+    this.model.addRemarksQuick(targetType, rowIndex, targetIndex);
+    
+    // Ждем обновления DOM и фокусируемся
+    setTimeout(() => {
+      this.startRemarksEditing(rowIndex, targetType, targetIndex);
+    }, 100);
+  }
 }
 
-  showTaskContextMenu(event, rowIndex, task) {
-    // Создаем контекстное меню
-    const $menu = $('<div>').addClass('context-menu task-context-menu');
-    
-    // Пункт "Удалить задачу"
-    const $deleteOption = $('<div>').addClass('menu-option')
-      .append($('<span>').text('Удалить задачу'))
+selectAllText(element) {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+/**
+ * Сохраняет примечание
+ */
+saveRemarks(rowIndex, targetType, targetIndex, remarks) {
+  console.log('Saving remarks:', { rowIndex, targetType, targetIndex, remarks });
+  
+  // Если текст пустой, удаляем примечание (но оставляем поле в данных)
+  if (!remarks || remarks.trim().length === 0) {
+    remarks = '';
+  }
+
+  switch (targetType) {
+    case 'limit':
+      this.model.updateLimitRemarks(rowIndex, targetIndex, remarks);
+      break;
+    case 'workArea':
+      this.model.updateWorkAreaRemarks(rowIndex, targetIndex, remarks);
+      break;
+    case 'task':
+      this.model.updateTaskRemarks(rowIndex, remarks);
+      break;
+  }
+}
+
+showTaskContextMenu(event, rowIndex, task) {
+  // Определяем тип элемента по тому, на что кликнули
+  const targetElement = $(event.target);
+  let context = this.determineContext(targetElement, rowIndex, task);
+
+  
+  
+  const $menu = $('<div>').addClass('context-menu task-context-menu');
+  if (context) {
+    const hasRemarks = this.model.hasRemarks(context.type, rowIndex, context.index);
+    const $remarksOption = $('<div>').addClass('menu-option')
+      .append($('<span>').text(hasRemarks ? 'Редактировать примечание' : 'Добавить примечание'))
       .on('click', () => {
-        if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
-          this.model.deleteTask(rowIndex);
+        if (hasRemarks) {
+          // Фокусируемся на существующем примечании
+          this.focusRemarksField(rowIndex, context.type, context.index);
+        } else {
+          // Добавляем пустое примечание
+          this.model.addRemarksQuick(context.type, rowIndex, context.index);
         }
         $menu.remove();
       });
     
-    $menu.append($deleteOption);
-    
-    const $changeSectionOption = $('<div>').addClass('menu-option')
-    .append($('<span>').text('Изменить раздел'))
+    $menu.append($remarksOption);
+  }
+  // Основные пункты меню
+  const $deleteOption = $('<div>').addClass('menu-option')
+    .append($('<span>').text('Удалить задачу'))
     .on('click', () => {
-        this.changeTaskSection(rowIndex, task);
-        $menu.remove();
+      if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
+        this.model.deleteTask(rowIndex);
+      }
+      $menu.remove();
     });
 
-    // Пункт "Добавить применимость к строке" с выпадающим списком
-    const $applicOption = $('<div>').addClass('menu-option with-submenu')
-      .append($('<span>').text('Добавить применимость к строке →'));
-      
-      // Создаем подменю с применимостями
-    const $submenu = $('<div>').addClass('submenu applicability-submenu');
-      
-    $menu.append($deleteOption, $changeSectionOption, $applicOption, $submenu);
+  const $changeSectionOption = $('<div>').addClass('menu-option')
+    .append($('<span>').text('Изменить раздел'))
+    .on('click', () => {
+      this.changeTaskSection(rowIndex, task);
+      $menu.remove();
+    });
 
+  $menu.append($deleteOption, $changeSectionOption);
 
-    // Добавляем опцию "Без применимости"
+  // Пункт для добавления примечания в текущий контекст
+  if (context) {
+    const hasRemarks = this.model.hasRemarks(context.type, rowIndex, context.index);
+    const $remarksOption = $('<div>').addClass('menu-option')
+      .append($('<span>').text(hasRemarks ? 'Редактировать примечание' : 'Добавить примечание'))
+      .on('click', () => {
+        if (hasRemarks) {
+          this.focusRemarksField(rowIndex, context.type, context.index);
+        } else {
+          this.model.addRemarksQuick(context.type, rowIndex, context.index);
+        }
+        $menu.remove();
+      });
+    
+    $menu.append($remarksOption);
+  }
+
+  // ВЕРНЁМ ПУНКТ ДЛЯ ПРИМЕНИМОСТИ ЗАДАЧИ
+  const $applicOption = $('<div>').addClass('menu-option with-submenu')
+    .append($('<span>').text('Применимость задачи →'));
+
+  // Создаем подменю с применимостями
+  const $submenu = $('<div>').addClass('submenu applicability-submenu');
+  
+  // Добавляем опцию "Без применимости"
+  $submenu.append(
+    $('<div>').addClass('submenu-option')
+      .text('Без применимости')
+      .on('click', () => {
+        this.model.updateApplicForTask(rowIndex, null);
+        $menu.remove();
+      })
+  );
+  
+  // Добавляем разделитель
+  $submenu.append($('<div>').addClass('submenu-divider'));
+  
+  // Добавляем все доступные применимости
+  Object.values(this.model.applicMap).forEach(applic => {
     $submenu.append(
       $('<div>').addClass('submenu-option')
-        .text('Без применимости')
+        .text(applic.displayValue || applic.id)
         .on('click', () => {
-          this.model.updateApplicForTask(rowIndex, null);
+          this.model.updateApplicForTask(rowIndex, applic.id);
           $menu.remove();
         })
     );
-    
-    // Добавляем разделитель
-    $submenu.append($('<div>').addClass('submenu-divider'));
-    
-    // Добавляем все доступные применимости
-    Object.values(this.model.applicMap).forEach(applic => {
-      $submenu.append(
-        $('<div>').addClass('submenu-option')
-          .text(applic.displayValue || applic.id)
-          .on('click', () => {
-            this.model.updateApplicForTask(rowIndex, applic.id);
-            $menu.remove();
-          })
-      );
-    });
-    
-    // Показываем подменю при наведении
-    $applicOption.on('mouseenter', () => {
-      $submenu.css({
-        top: $applicOption.position().top,
-        left: $applicOption.outerWidth()
-      }).show();
-    });
-    
-    $applicOption.on('mouseleave', () => {
-      setTimeout(() => {
-        if (!$submenu.is(':hover')) {
-          $submenu.hide();
-        }
-      }, 100);
-    });
-    
-    $submenu.on('mouseleave', () => {
-      $submenu.hide();
-    });
-    
-    $menu.append($applicOption);
-    $menu.append($submenu);
-    
-    // Позиционируем меню рядом с курсором
-    $menu.css({
-      position: 'absolute',
-      top: event.pageY,
-      left: event.pageX,
-      zIndex: 1000
-    });
-    
-    // Добавляем меню на страницу
-    $('body').append($menu);
-    
-    // Закрываем меню при клике вне его
-    $(document).on('mousedown', (e) => {
-      if (!$menu.is(e.target) && $menu.has(e.target).length === 0) {
-        $menu.remove();
-        $(document).off('mousedown');
+  });
+  
+  $menu.append($applicOption, $submenu);
+
+  // Показываем подменю при наведении
+  $applicOption.on('mouseenter', () => {
+    $submenu.css({
+      top: $applicOption.position().top,
+      left: $applicOption.outerWidth()
+    }).show();
+  });
+  
+  $applicOption.on('mouseleave', () => {
+    setTimeout(() => {
+      if (!$submenu.is(':hover')) {
+        $submenu.hide();
       }
-    });
-    
-    // Закрываем меню при нажатии ESC
-    $(document).on('keydown', (e) => {
-      if (e.key === 'Escape') {
-        $menu.remove();
-        $(document).off('keydown');
-      }
-    });
+    }, 100);
+  });
+  
+  $submenu.on('mouseleave', () => {
+    $submenu.hide();
+  });
+
+  // Позиционируем меню
+  $menu.css({
+    position: 'absolute',
+    top: event.pageY,
+    left: event.pageX,
+    zIndex: 1000
+  });
+
+  $('body').append($menu);
+
+  // Закрытие меню
+  $(document).on('mousedown', (e) => {
+    if (!$menu.is(e.target) && $menu.has(e.target).length === 0) {
+      $menu.remove();
+      $(document).off('mousedown');
+    }
+  });
+
+  $(document).on('keydown', (e) => {
+    if (e.key === 'Escape') {
+      $menu.remove();
+      $(document).off('keydown');
+    }
+  });
+}
+  /**
+   * Определяет контекст клика - на каком элементе было вызвано меню
+   */
+  determineContext($target, rowIndex, task) {
+    // Проверяем limit блоки
+    const $limitBlock = $target.closest('.limit-block');
+    if ($limitBlock.length) {
+      const limitIndex = $limitBlock.data('limit-index');
+      return { type: 'limit', index: limitIndex };
+    }
+
+    // Проверяем workArea группы
+    const $workAreaGroup = $target.closest('.work-area-group-block');
+    if ($workAreaGroup.length) {
+      const groupIndex = $workAreaGroup.data('group-index');
+      return { type: 'workArea', index: groupIndex };
+    }
+
+    // Проверяем ячейку описания задачи
+    const $taskDescrCell = $target.closest('td[data-field="taskDescr"]');
+    if ($taskDescrCell.length) {
+      return { type: 'task', index: null };
+    }
+
+    // Если клик был на другой ячейке строки - считаем что это контекст задачи
+    const $taskRow = $target.closest('tr[data-task-index]');
+    if ($taskRow.length) {
+      return { type: 'task', index: null };
+    }
+
+    return null;
   }
+
+
+  updateTaskDescrRemarks(rowIndex) {
+    const task = this.model.getFilteredTasks()[rowIndex];
+    if (!task) return;
+    
+    // Найти ячейку taskDescr в DOM
+    const table = $('table.schedule-table');
+    const row = table.find(`tbody tr[data-task-index="${rowIndex}"]`);
+    if (!row.length) return;
+    
+    const headers = this.model.getHeaders();
+    const descrColIndex = headers.findIndex(h => h.key === 'taskDescr');
+    if (descrColIndex === -1) return;
+    
+    const cell = row.find('td').eq(descrColIndex);
+    const container = cell.find('.task-description-container');
+    if (!container.length) return;
+    
+    // Удалить старый блок примечаний
+    container.find('.remarks-block').remove();
+    
+    // Добавить новый блок примечаний если есть
+    if (task.remarks !== undefined && task.remarks) {
+        const remarksBlock = this.renderRemarksField(task.remarks, rowIndex, 'task');
+        if (remarksBlock) {
+            // Вставить после editable-text, но перед supervisor-block
+            const supervisorBlock = container.find('.supervisor-block');
+            if (supervisorBlock.length) {
+                supervisorBlock.before(remarksBlock);
+            } else {
+                container.append(remarksBlock);
+            }
+        }
+    }
+}
+  /**
+   * Фокусируется на поле примечания
+   */
+  focusRemarksField(rowIndex, targetType, targetIndex = null) {
+    console.log('Focusing remarks field:', { rowIndex, targetType, targetIndex });
+    
+    let selector = '';
+    
+    switch (targetType) {
+      case 'task':
+        selector = `tr[data-task-index="${rowIndex}"] .remarks-text`;
+        break;
+      case 'limit':
+        selector = `tr[data-task-index="${rowIndex}"] .limit-block[data-limit-index="${targetIndex}"] .remarks-text`;
+        break;
+      case 'workArea':
+        selector = `tr[data-task-index="${rowIndex}"] .work-area-group-block[data-group-index="${targetIndex}"] .remarks-text`;
+        break;
+    }
+    
+    const $field = $(selector);
+    console.log('Found field:', $field.length, $field);
+    
+    if ($field.length > 0) {
+      // Убедимся, что поле редактируемое
+      $field.attr('contenteditable', 'true');
+      
+      // Фокусируемся
+      $field.focus();
+      
+      // Помещаем курсор в конец текста
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents($field[0]);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      console.log('Field focused successfully');
+    } else {
+      console.warn('Remarks field not found with selector:', selector);
+    }
+  }
+
+  /**
+   * Выделяет текст в contenteditable элементе
+   */
+  selectText(element, start, end) {
+    if (document.createRange && window.getSelection) {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      // Устанавливаем курсор в конец
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+
+  updateTaskDurationCell(rowIndex) {
+    const tasks = this.model.getFilteredTasks();
+    if (rowIndex < 0 || rowIndex >= tasks.length) return;
+    
+    const $table = $('table.schedule-table');
+    const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
+    if (!$row.length) return;
+    
+    const headers = this.model.getHeaders();
+    const durationColIndex = headers.findIndex(h => h.key === 'taskDuration');
+    if (durationColIndex === -1) return;
+    
+    const $cell = $row.find('td').eq(durationColIndex);
+    $cell.empty();
+    
+    const taskDurationView = new TaskDurationView(this.model, rowIndex, this.editable);
+    $cell.append(taskDurationView.render());
+}
+
+updateCell(rowIndex, colKey) {
+  const viewKey = `${rowIndex}-${colKey}`;
+  let view = this.activeViews.get(viewKey);
+  
+  if (view) {
+      // Обновляем свойство editable на актуальное
+      view.editable = this.editable;
+      const $newContent = view.update();
+      
+      const $table = $('table.schedule-table');
+      const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
+      const colIndex = this.model.getHeaders().findIndex(h => h.key === colKey);
+      const $cell = $row.find('td').eq(colIndex);
+      
+      $cell.empty().append($newContent);
+  } else {
+      // Если view нет в activeViews, создаем новый
+      this.forceRenderCell(rowIndex, colKey);
+  }
+}
+
+// Новый метод для принудительного рендеринга ячейки
+forceRenderCell(rowIndex, colKey) {
+  const $table = $('table.schedule-table');
+  const $row = $table.find(`tbody tr[data-task-index="${rowIndex}"]`);
+  const colIndex = this.model.getHeaders().findIndex(h => h.key === colKey);
+  const $cell = $row.find('td').eq(colIndex);
+  
+  if ($cell.length) {
+      $cell.empty();
+      
+      const view = ViewRegistry.create(colKey, this.model, rowIndex, this.editable);
+      if (view) {
+          const viewKey = `${rowIndex}-${colKey}`;
+          this.activeViews.set(viewKey, view);
+          $cell.append(view.render());
+      }
+  }
+}
+
+removeRowViews(rowIndex) {
+  // Удаляем все представления для этой строки
+  for (const [key, view] of this.activeViews.entries()) {
+      if (key.startsWith(`${rowIndex}-`)) {
+          view.destroy();
+          this.activeViews.delete(key);
+      }
+  }
+}
+
+
+/* удалиени таблицы*/
+
+
+clearContext() {
+  console.log('Clearing ScheduleView context...');
+  
+  // 1. Удаляем все активные представления
+  this.activeViews.forEach(view => {
+      try {
+          if (view && typeof view.destroy === 'function') {
+              view.destroy();
+          }
+      } catch (err) {
+          console.error('Error destroying view:', err);
+      }
+  });
+  this.activeViews.clear();
+  
+  // 2. Удаляем таблицу из DOM
+  if (this.$table) {
+      this.$table.remove();
+      this.$table = null;
+  }
+  
+  // 3. Очищаем обработчики событий (кроме основных, зарегистрированных в конструкторе)
+  // Удаляем все обработчики, привязанные к контейнеру, кроме базовых
+  // this.$container.off('.scheduleview');
+  
+  // 4. Очищаем кешированные данные
+  this.headers = [];
+  
+  // 5. Закрываем открытые модальные окна
+  this.closeAllModals();
+  
+  // 6. Очищаем временные данные
+  this.cleanupTemporaryData();
+  
+  console.log('ScheduleView context cleared');
+}
+
+/**
+* Закрывает все открытые модальные окна
+*/
+closeAllModals() {
+  // Закрываем Bootstrap модальные окна
+  $('.modal').modal('hide');
+  
+  // Удаляем модальные окна, созданные нашим кодом
+  $('.modal-backdrop').remove();
+  $('body').removeClass('modal-open');
+  
+  // Удаляем кастомные модальные окна
+  $('.custom-modal, .context-menu, .task-context-menu').remove();
+  
+  // Закрываем DmCodeModal если он открыт
+  if (this.dmCodeModal && typeof this.dmCodeModal.close === 'function') {
+      this.dmCodeModal.close();
+  }
+}
+
+/**
+* Очищает временные данные
+*/
+cleanupTemporaryData() {
+  // Очищаем временные переменные
+  this.dragSourceRow = null;
+  this.dragTargetRow = null;
+  
+  // Сбрасываем состояние редактирования
+  this.editingElement = null;
+  
+  // Очищаем выбранные элементы
+  $('.selected-task, .selected-row').removeClass('selected-task selected-row');
+  
+  // Удаляем временные элементы
+  $('.temp-highlight, .drag-placeholder, .drop-indicator').remove();
+}
+
+/**
+* Сбрасывает состояние при переключении режимов редактирования
+*/
+resetViewState() {
+  // Сбрасываем все интерактивные состояния
+  this.isDragging = false;
+  this.isEditing = false;
+  this.isSelecting = false;
+  
+  // Удаляем выделение текста
+  if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+  }
+  
+  // Скрываем контекстные меню
+  $('.context-menu, .submenu').remove();
+  
+  // Сбрасываем фокус
+  $(document.activeElement).blur();
+}
+
+// Обновляем метод updateView, чтобы очищал контекст при смене режима:
+updateView(isEditMode) {
+  // Очищаем контекст перед сменой режима
+  this.clearContext();
+  
+  this.editable = isEditMode;
+  this.render();
+  this.setEditable(isEditMode);
+}
+
+// Добавляем метод для ручной очистки (может вызываться извне):
+destroy() {
+  console.log('Destroying ScheduleView...');
+  
+  // 1. Отписываемся от изменений модели
+  if (typeof this._unsubscribeModel === 'function') {
+      this._unsubscribeModel();
+      this._unsubscribeModel = null;
+  }
+  
+  // 2. Полностью очищаем контекст
+  this.clearContext();
+  
+  // 3. Удаляем все обработчики событий
+  // this.$container.off();
+  
+  // 4. Очищаем ссылки
+  this.model = null;
+  this.$container = null;
+  this.dmCodeModal = null;
+  
+  // 5. Удаляем все дочерние элементы из контейнера
+  // this.$container && this.$container.empty();
+  
+  console.log('ScheduleView destroyed');
+}
+
+
+  /**
+ * Фокусируется на поле примечания
+ */
+
 }

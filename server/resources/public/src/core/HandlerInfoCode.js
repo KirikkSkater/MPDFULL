@@ -52,8 +52,8 @@ class HandlerInfoCode {
           <th class="rotated-header" rowspan="2" style="width: 6%"><div class="rotated-content">ДОСТУП</div></th>
           <th class="rotated-header" rowspan="2" style="width: 3%"><div class="rotated-content">КОД ЗАДАЧИ</div></th>
           <th class="normal-header" rowspan="2" style="width: 10%"><div class="normal-content">ОПИСАНИЕ ЗАДАЧИ</div></th>
-          <th class="normal-header" rowspan="2" style="width: 11%"><div class="normal-content">Порог начала/Переодичность</div></th>
-          <th class="rotated-header" rowspan="2" style="width: 7%"><div class="rotated-content">AMTOSS</div></th>
+          <th class="normal-header" rowspan="2" style="width: 10%"><div class="normal-content">Порог начала/Переодичность</div></th>
+          <th class="rotated-header" rowspan="2" style="width: 8%"><div class="rotated-content">AMTOSS</div></th>
           <th class="rotated-header" style="width: 7%">
           <div class="rotated-content">КОЛ-ВО ЧЕЛОВЕК<br>/ Специализация</div>
           </th>

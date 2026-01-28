@@ -64,8 +64,8 @@ class AccessPointView extends BaseCellView {
         
         const $leftSection = $('<div>').addClass('d-flex align-items-center');
         // Показываем реальный индекс для отладки
-        //const $headerTitle = $('<strong>').html(`Точки доступа <small class="text-muted ml-1">[#${groupIndex}]</small>`);
-        //$leftSection.append($headerTitle);
+        const $headerTitle = $('<strong>').html(`Точки доступа <small class="text-muted ml-1">[#${groupIndex}]</small>`);
+        $leftSection.append($headerTitle);
 
         // Применимость группы
         if (group.applicRefId) {

@@ -171,28 +171,14 @@ class ScheduleTableModel {
 
             task.taskTitle = $node.find('task > taskTitle').text().trim();
             task.changeType = $node.attr('changeType') || '';
-            const $remarks = $node.find('remarks');
+            const $remarks = $node.find('taskDefinition > remarks simplePara');
             if ($remarks.length) {
-                // Берем текст из simplePara, если он есть
-                const $simplePara = $remarks.find('simplePara');
-                if ($simplePara.length) {
-                    task.remarks= $simplePara.text().trim();
-                } else {
-                    // Если simplePara нет, берем текст напрямую из remarks (для обратной совместимости)
-                    task.remarks = $remarks.text().trim();
-                }
-                
-                // Сохраняем applicRefId если есть
-                const applicRefId = $remarks.attr('applicRefId');
-                if (applicRefId) {
-                    if (!task.fieldApplicabilities) task.fieldApplicabilities = {};
-                    task.fieldApplicabilities['remarks'] = { id: applicRefId, displayValue: this.getApplicDisplayValue(applicRefId)};
-                }
+                task.remarks = $remarks.text().trim();
             } else {
                 task.remarks = '';
             }
 
-            task.supervisorLevelCode = $node.find('supervisorLevel').attr('supervisorLevelCode') || '';
+            task.supervisorLevelCode = undefined;
 
             // Для applicability берем applicRefId из корневого элемента taskDefinition
             if ($node.attr('applicRefId')) {
@@ -200,39 +186,57 @@ class ScheduleTableModel {
             }
 
             task.workAreaLocationGroups = [];
-    $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
-        const $group = $(group);
-        const groupData = {
-            applicRefId: $group.attr('applicRefId') || null,
-            zones: [],
-            accessPoints: []
-        };
-
-        // Определяем тип группы по содержимому
-        const hasZones = $group.find('zoneRef').length > 0;
-        const hasAccessPoints = $group.find('accessPointRef').length > 0;
-        
-        groupData.type = hasZones ? 'zone' : 'access';
-
-        // Парсим зоны
-        $group.find('zoneRef').each((j, zone) => {
-            const $zone = $(zone);
-            groupData.zones.push({
-                zoneNumber: $zone.attr('zoneNumber') || ''
+            $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
+                const $group = $(group);
+                const groupData = {
+                    applicRefId: $group.attr('applicRefId') || null,
+                    zones: [],
+                    accessPoints: []
+                };
+    
+                // Определяем тип группы по содержимому
+                const hasZones = $group.find('zoneRef').length > 0;
+                const hasAccessPoints = $group.find('accessPointRef').length > 0;
+                
+                // Если есть и то, и другое - считаем смешанной, но лучше разделить
+                if (hasZones && hasAccessPoints) {
+                    // Это смешанная группа, разделяем на две логические группы
+                    // Но в XML это одна группа, так что пока оставляем как есть
+                    console.warn('Mixed zone/access group found at row', i);
+                }
+                
+                // По умолчанию определяем по первому найденному элементу
+                groupData.type = hasZones ? 'zone' : 'access';
+    
+                // Парсим зоны
+                $group.find('zoneRef').each((j, zone) => {
+                    const $zone = $(zone);
+                    groupData.zones.push({
+                        zoneNumber: $zone.attr('zoneNumber') || ''
+                    });
+                });
+    
+                // Парсим точки доступа (без accessPointTypeValue)
+                $group.find('accessPointRef').each((j, access) => {
+                    const $access = $(access);
+                    groupData.accessPoints.push({
+                        accessPointNumber: $access.attr('accessPointNumber') || ''
+                        // Убрали accessPointTypeValue
+                    });
+                });
+    
+                // Парсим примечания (workArea внутри workLocation)
+                const $workLocation = $group.find('workLocation');
+                if ($workLocation.length) {
+                    const $workArea = $workLocation.find('workArea');
+                    if ($workArea.length) {
+                        if (!groupData.remarks) groupData.remarks = {};
+                        groupData.remarks.text = $workArea.text().trim();
+                    }
+                }
+    
+                task.workAreaLocationGroups.push(groupData);
             });
-        });
-
-        // Парсим точки доступа
-        $group.find('accessPointRef').each((j, access) => {
-            const $access = $(access);
-            groupData.accessPoints.push({
-                accessPointNumber: $access.attr('accessPointNumber') || '',
-                accessPointTypeValue: $access.attr('accessPointTypeValue') || ''
-            });
-        });
-
-        task.workAreaLocationGroups.push(groupData);
-    });
 
 
             // Блоки limit
@@ -241,31 +245,57 @@ class ScheduleTableModel {
                 const $lim = $(lim);
                 const block = {};
                 
-                // Тип выполнения
+                // Основные атрибуты
                 block.applicRefId = $lim.attr('applicRefId') || null;
                 block.limitType = $lim.attr('limitTypeValue') || '';
-                
-                // Условие
-                if (block.limitType === 'oc') {
                 block.limitCond = $lim.attr('limitCond') || '';
+                
+                // Интервалы (thresholdType="interval")
+                block.intervals = [];
+                $lim.find('threshold[thresholdType="interval"]').each((j, interval) => {
+                    const $interval = $(interval);
+                    block.intervals.push({
+                        value: $interval.find('thresholdValue').text().trim(),
+                        unit: $interval.attr('thresholdUnitOfMeasure') || ''
+                    });
+                });
+                
+                // Пороги (thresholdType="threshold")
+                block.thresholds = [];
+                $lim.find('threshold[thresholdType="threshold"]').each((j, threshold) => {
+                    const $threshold = $(threshold);
+                    block.thresholds.push({
+                        value: $threshold.find('thresholdValue').text().trim(),
+                        unit: $threshold.attr('thresholdUnitOfMeasure') || ''
+                    });
+                });
+
+                const $limitRemarks = $lim.find('remarks simplePara');
+                if ($limitRemarks.length) {
+                    if (!block.remarks) block.remarks = {};
+                    block.remarks.text = $limitRemarks.text().trim();
                 }
-                
-                // Интервал
-                const $interval = $lim.children('threshold[thresholdType="interval"]').first();
-                block.intervalValue = $interval.find('> thresholdValue').text().trim();
-                block.intervalUnit = $interval.attr('thresholdUnitOfMeasure') || '';
-                
-                // Порог
-                const $thr = $lim.children('trigger').children('threshold[thresholdType="threshold"]').first();
-                block.thresholdValue = $thr.find('> thresholdValue').text().trim();
-                block.thresholdUnit = $thr.attr('thresholdUnitOfMeasure') || '';
                 
                 task.limits.push(block);
             });
 
-            const $rqmtSource = $node.find('rqmtSource');
-            task.rqmtSourceOfRqmt = $rqmtSource.attr('sourceOfRqmt') || '';
-            task.rqmtSourceCriticality = $rqmtSource.find('sourceType').attr('sourceCriticality') || '';
+            task.rqmtSources = [];
+            $node.find('rqmtSource').each((i, src) => {
+                const $src = $(src);
+                const sourceData = {
+                    sourceOfRqmt: $src.attr('sourceOfRqmt') || '',
+                    sourceCriticality: []  // МАССИВ вместо строки!
+                };
+                
+                // Собираем ВСЕ sourceCriticality
+                $src.find('sourceType').each((j, st) => {
+                    const criticality = $(st).attr('sourceCriticality');
+                    if (criticality) {
+                        sourceData.sourceCriticality.push(criticality);
+                    }
+                });
+                task.rqmtSources.push(sourceData);
+            });
 
             task.personnel = [];
 
@@ -639,8 +669,9 @@ class ScheduleTableModel {
         taskObj.fieldApplicabilities = {};
         taskObj.taskTitle = taskTitle;
         taskObj.personnel = [];
-        taskObj.supervisorLevelCode = '';
+        // taskObj.supervisorLevelCode = '';
         taskObj.remarks = "";
+        taskObj.rqmtSources = []; // Инициализируем пустой массив
 
         
         // Заполняем остальные поля
@@ -915,80 +946,64 @@ class ScheduleTableModel {
             console.warn('limit index out of range', limitIndex);
             return false;
         }
-
+    
         const $lim = $($limits.get(limitIndex));
-        // Устанавливаем атрибут applicRefId на конкретный <limit>
         if (applicId) {
             $lim.attr('applicRefId', applicId);
         } else {
             $lim.removeAttr('applicRefId');
         }
-
+    
         // Обновляем модельную структуру
         if (!this.tasks[rowIndex].limits) this.tasks[rowIndex].limits = [];
         this.tasks[rowIndex].limits[limitIndex] = this.tasks[rowIndex].limits[limitIndex] || {};
         this.tasks[rowIndex].limits[limitIndex].applicRefId = applicId || null;
-
-        // Emit granular change: meta содержит rowIndex и limitIndex
-        if (typeof this._emitChange === 'function') {
-            // если у тебя реализован _emitChange(meta) — используй его
-            this._emitChange({ type: 'applicability:changed', payload: { rowIndex, limitIndex, applicId, field: 'limit' } });
-        } else {
-            // fallback — вызвать старые слушатели полностью
-            this.changeListeners.forEach(fn => {
-                try { fn(this.getXML(), { type: 'applicability:changed', payload: { rowIndex, limitIndex, applicId } }); }
-                catch (e) { console.error(e); }
-            });
-        }
+    
+        this._emitChange({ 
+            type: 'applicability:changed', 
+            payload: { rowIndex, limitIndex, applicId, field: 'limit' } 
+        });
         return true;
     }
 
 
     addLimitToTask(rowIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-
-        // Создаем новый пустой объект limit
+    
+        // Создаем новый пустой объект limit с ТОЛЬКО интервалом
         const newLimit = {
             limitType: 'po',
-            intervalValue: '',
-            intervalUnit: '',
-            thresholdValue: '',
-            thresholdUnit: '',
-            applicRefId: null
+            limitCond: '',
+            applicRefId: null,
+            intervals: [{ value: '', unit: '' }], // Один пустой интервал по умолчанию
+            thresholds: []  // Пустой массив порогов
         };
-
+    
         // Добавляем в модель данных
         if (!this.tasks[rowIndex].limits) {
             this.tasks[rowIndex].limits = [];
         }
         this.tasks[rowIndex].limits.push(newLimit);
-
-        // Создаем XML-структуру с правильным регистром
-        const xmlString = `
-            <limit>
-                <threshold thresholdType="interval">
-                    <thresholdValue></thresholdValue>
-                </threshold>
-                <trigger>
-                    <threshold thresholdType="threshold">
-                        <thresholdValue></thresholdValue>
-                    </threshold>
-                </trigger>
-            </limit>
-        `;
-
-        // Парсим XML строку в DOM элемент
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
-        const limitElement = xmlDoc.documentElement;
-
-        // Импортируем элемент в текущий документ
-        const importedLimit = document.importNode(limitElement, true);
+    
+        // Получаем taskNode
+        const taskNode = this.taskNodes[rowIndex];
+        const doc = taskNode.ownerDocument;
+    
+        // Создаем элементы через DOM API - ТОЛЬКО интервал
+        const limitElement = doc.createElement('limit');
+        limitElement.setAttribute('limitTypeValue', 'po');
         
-        // Добавляем в XML
-        const $taskNode = $(this.taskNodes[rowIndex]);
-        this.insertElementInCorrectOrder(this.taskNodes[rowIndex], importedLimit, 'limit');
-
+        // Создаем только интервал (без trigger и порога)
+        const thresholdInterval = doc.createElement('threshold');
+        thresholdInterval.setAttribute('thresholdType', 'interval');
+        thresholdInterval.setAttribute('thresholdUnitOfMeasure', '');
+        const thresholdValueInterval = doc.createElement('thresholdValue');
+        thresholdInterval.appendChild(thresholdValueInterval);
+        limitElement.appendChild(thresholdInterval);
+    
+        // Вставляем limit в правильное место
+        this.insertElementInCorrectOrder(taskNode, limitElement, 'limit');
+    
         // Уведомляем об изменении
         this._emitChange({
             type: 'limit:added',
@@ -1023,41 +1038,460 @@ class ScheduleTableModel {
         });
     }
 
-    updateRqmtSourceField(rowIndex, field, value) {
+    /**
+ * Добавляет интервал к лимиту
+ */
+    addIntervalToLimit(rowIndex, limitIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-        
-        const node = this.taskNodes[rowIndex];
-        
-        // Используем нативные методы для поиска и создания элементов
-        let rqmtSource = node.getElementsByTagName('rqmtSource')[0];
-        
-        // Если элемента rqmtSource нет, создаем его
-        if (!rqmtSource) {
-            rqmtSource = node.ownerDocument.createElement('rqmtSource');
-            this.insertElementInCorrectOrder(node, rqmtSource, 'rqmtSource');
-        }
-        
-        if (field === 'sourceOfRqmt') {
-            // Обновляем атрибут sourceOfRqmt
-            rqmtSource.setAttribute('sourceOfRqmt', value);
-            this.tasks[rowIndex].rqmtSourceOfRqmt = value;
-        } else if (field === 'sourceCriticality') {
-            // Находим или создаем элемент sourceType
-            let sourceType = rqmtSource.getElementsByTagName('sourceType')[0];
-            if (!sourceType) {
-            sourceType = node.ownerDocument.createElement('sourceType');
-            rqmtSource.appendChild(sourceType);
-            }
+        if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+    
+        // Добавляем в модель
+        this.tasks[rowIndex].limits[limitIndex].intervals.push({
+            value: '',
+            unit: ''
+        });
+    
+        // Добавляем в XML
+        const taskNode = this.taskNodes[rowIndex];
+        const limits = taskNode.getElementsByTagName('limit');
+        if (limitIndex < limits.length) {
+            const limit = limits[limitIndex];
+            const doc = taskNode.ownerDocument;
+    
+            const threshold = doc.createElement('threshold');
+            threshold.setAttribute('thresholdType', 'interval');
+            threshold.setAttribute('thresholdUnitOfMeasure', '');
             
-            // Обновляем атрибут sourceCriticality
-            sourceType.setAttribute('sourceCriticality', value);
-            this.tasks[rowIndex].rqmtSourceCriticality = value;
+            const thresholdValue = doc.createElement('thresholdValue');
+            threshold.appendChild(thresholdValue);
+    
+            // Находим trigger (если есть) чтобы вставить интервал ПЕРЕД ним
+            const trigger = limit.getElementsByTagName('trigger')[0];
+            if (trigger) {
+                // Вставляем перед trigger
+                limit.insertBefore(threshold, trigger);
+            } else {
+                // Если trigger нет, добавляем в конец
+                limit.appendChild(threshold);
+            }
         }
-        
-        // Уведомляем об изменении
-        this.changeListeners.forEach(fn => fn(this.getXML()));
+    
+        this._emitChange({
+            type: 'limit:intervalAdded',
+            payload: { rowIndex, limitIndex }
+        });
     }
 
+/**
+ * Удаляет интервал из лимита
+ */
+removeIntervalFromLimit(rowIndex, limitIndex, intervalIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+    if (intervalIndex < 0 || intervalIndex >= this.tasks[rowIndex].limits[limitIndex].intervals.length) return;
+
+    // ПРОВЕРКА: не позволяем удалить последний интервал
+    if (this.tasks[rowIndex].limits[limitIndex].intervals.length <= 1) {
+        alert('Ошибка: Должен оставаться хотя бы один интервал!');
+        return;
+    }
+
+    // Удаляем из модели
+    this.tasks[rowIndex].limits[limitIndex].intervals.splice(intervalIndex, 1);
+
+    // Удаляем из XML
+    const taskNode = this.taskNodes[rowIndex];
+    const limits = taskNode.getElementsByTagName('limit');
+    if (limitIndex < limits.length) {
+        const limit = limits[limitIndex];
+        const intervals = limit.querySelectorAll('threshold[thresholdType="interval"]');
+        if (intervalIndex < intervals.length) {
+            limit.removeChild(intervals[intervalIndex]);
+        }
+    }
+
+    this._emitChange({
+        type: 'limit:intervalRemoved',
+        payload: { rowIndex, limitIndex }
+    });
+}
+
+/**
+ * Добавляет порог к лимиту
+ */
+addThresholdToLimit(rowIndex, limitIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+
+    // Добавляем в модель
+    this.tasks[rowIndex].limits[limitIndex].thresholds.push({
+        value: '',
+        unit: ''
+    });
+
+    // Добавляем в XML
+    const taskNode = this.taskNodes[rowIndex];
+    const limits = taskNode.getElementsByTagName('limit');
+    if (limitIndex < limits.length) {
+        const limit = limits[limitIndex];
+        const doc = taskNode.ownerDocument;
+
+        // Создаем trigger если его нет
+        let trigger = limit.getElementsByTagName('trigger')[0];
+        if (!trigger) {
+            trigger = doc.createElement('trigger');
+            // Trigger должен быть ПОСЛЕ всех интервалов
+            limit.appendChild(trigger);
+        }
+
+        const threshold = doc.createElement('threshold');
+        threshold.setAttribute('thresholdType', 'threshold');
+        threshold.setAttribute('thresholdUnitOfMeasure', '');
+        
+        const thresholdValue = doc.createElement('thresholdValue');
+        threshold.appendChild(thresholdValue);
+
+        trigger.appendChild(threshold);
+    }
+
+    this._emitChange({
+        type: 'limit:thresholdAdded',
+        payload: { rowIndex, limitIndex }
+    });
+}
+
+/**
+ * Удаляет порог из лимита
+ */
+removeThresholdFromLimit(rowIndex, limitIndex, thresholdIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+    if (thresholdIndex < 0 || thresholdIndex >= this.tasks[rowIndex].limits[limitIndex].thresholds.length) return;
+
+    // Удаляем из модели
+    this.tasks[rowIndex].limits[limitIndex].thresholds.splice(thresholdIndex, 1);
+
+    // Удаляем из XML
+    const taskNode = this.taskNodes[rowIndex];
+    const limits = taskNode.getElementsByTagName('limit');
+    if (limitIndex < limits.length) {
+        const limit = limits[limitIndex];
+        const trigger = limit.getElementsByTagName('trigger')[0];
+        if (trigger) {
+            const thresholds = trigger.querySelectorAll('threshold[thresholdType="threshold"]');
+            if (thresholdIndex < thresholds.length) {
+                trigger.removeChild(thresholds[thresholdIndex]);
+            }
+            
+            // Удаляем trigger если он пустой
+            if (trigger.children.length === 0) {
+                limit.removeChild(trigger);
+            }
+        }
+    }
+
+    this._emitChange({
+        type: 'limit:thresholdRemoved',
+        payload: { rowIndex, limitIndex }
+    });
+}
+
+/**
+ * Обновляет поле интервала
+ */
+updateIntervalField(rowIndex, limitIndex, intervalIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+    if (intervalIndex < 0 || intervalIndex >= this.tasks[rowIndex].limits[limitIndex].intervals.length) return;
+
+    // Обновляем модель
+    const interval = this.tasks[rowIndex].limits[limitIndex].intervals[intervalIndex];
+    if (field === 'value') {
+        interval.value = value;
+    } else if (field === 'unit') {
+        interval.unit = value;
+    }
+
+    // Обновляем XML
+    const taskNode = this.taskNodes[rowIndex];
+    const limits = taskNode.getElementsByTagName('limit');
+    if (limitIndex < limits.length) {
+        const limit = limits[limitIndex];
+        const intervals = limit.querySelectorAll('threshold[thresholdType="interval"]');
+        if (intervalIndex < intervals.length) {
+            const intervalNode = intervals[intervalIndex];
+            if (field === 'value') {
+                const valueNode = intervalNode.getElementsByTagName('thresholdValue')[0];
+                if (valueNode) {
+                    valueNode.textContent = value;
+                }
+            } else if (field === 'unit') {
+                intervalNode.setAttribute('thresholdUnitOfMeasure', value);
+            }
+        }
+    }
+
+    this._emitChange({
+        type: 'limit:intervalChanged',
+        payload: { rowIndex, limitIndex, intervalIndex, field, value }
+    });
+}
+
+/**
+ * Обновляет поле порога
+ */
+updateThresholdField(rowIndex, limitIndex, thresholdIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+    if (thresholdIndex < 0 || thresholdIndex >= this.tasks[rowIndex].limits[limitIndex].thresholds.length) return;
+
+    // Обновляем модель
+    const threshold = this.tasks[rowIndex].limits[limitIndex].thresholds[thresholdIndex];
+    if (field === 'value') {
+        threshold.value = value;
+    } else if (field === 'unit') {
+        threshold.unit = value;
+    }
+
+    // Обновляем XML
+    const taskNode = this.taskNodes[rowIndex];
+    const limits = taskNode.getElementsByTagName('limit');
+    if (limitIndex < limits.length) {
+        const limit = limits[limitIndex];
+        const trigger = limit.getElementsByTagName('trigger')[0];
+        if (trigger) {
+            const thresholds = trigger.querySelectorAll('threshold[thresholdType="threshold"]');
+            if (thresholdIndex < thresholds.length) {
+                const thresholdNode = thresholds[thresholdIndex];
+                if (field === 'value') {
+                    const valueNode = thresholdNode.getElementsByTagName('thresholdValue')[0];
+                    if (valueNode) {
+                        valueNode.textContent = value;
+                    }
+                } else if (field === 'unit') {
+                    thresholdNode.setAttribute('thresholdUnitOfMeasure', value);
+                }
+            }
+        }
+    }
+
+    this._emitChange({
+        type: 'limit:thresholdChanged',
+        payload: { rowIndex, limitIndex, thresholdIndex, field, value }
+    });
+}
+
+/**
+ * Обновляет основное поле лимита (limitType, limitCond)
+ */
+updateLimitMainField(rowIndex, limitIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+
+    const $taskNode = $(this.taskNodes[rowIndex]);
+    const $limits = $taskNode.find('limit');
+    if (limitIndex < 0 || limitIndex >= $limits.length) return;
+
+    const $lim = $($limits.get(limitIndex));
+
+    switch (field) {
+        case 'limitType':
+            $lim.attr('limitTypeValue', value);
+            this.tasks[rowIndex].limits[limitIndex].limitType = value;
+            break;
+        case 'limitCond':
+            $lim.attr('limitCond', value);
+            this.tasks[rowIndex].limits[limitIndex].limitCond = value;
+            break;
+    }
+
+    this._emitChange({
+        type: 'limit:mainChanged',
+        payload: { rowIndex, limitIndex, field, value }
+    });
+}
+
+/**
+ * Проверяет валидность лимита (интервалы должны быть заполнены)
+ */
+validateLimit(rowIndex, limitIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
+    if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return false;
+
+    const limit = this.tasks[rowIndex].limits[limitIndex];
+    
+    // Проверяем интервалы - они должны быть заполнены
+    for (const interval of limit.intervals) {
+        if (!interval.value || interval.value.trim() === '') {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+addRqmtSource(rowIndex, sourceData = { sourceOfRqmt: '', sourceCriticality: [] }) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    
+    if (!this.tasks[rowIndex].rqmtSources) {
+        this.tasks[rowIndex].rqmtSources = [];
+    }
+    
+    this.tasks[rowIndex].rqmtSources.push({...sourceData});
+    
+    // Добавляем в XML
+    const taskNode = this.taskNodes[rowIndex];
+    const doc = taskNode.ownerDocument;
+    
+    const rqmtSourceElement = doc.createElement('rqmtSource');
+    if (sourceData.sourceOfRqmt) {
+        rqmtSourceElement.setAttribute('sourceOfRqmt', sourceData.sourceOfRqmt);
+    }
+    
+    // Добавляем все sourceCriticality как отдельные sourceType элементы
+    sourceData.sourceCriticality.forEach(criticality => {
+        if (criticality) {
+            const sourceTypeElement = doc.createElement('sourceType');
+            sourceTypeElement.setAttribute('sourceCriticality', criticality);
+            rqmtSourceElement.appendChild(sourceTypeElement);
+        }
+    });
+    
+    // Вставляем в правильное место (после task, перед preliminaryRqmts)
+    this.insertElementInCorrectOrder(taskNode, rqmtSourceElement, 'rqmtSource');
+    
+    this._emitChange({
+        type: 'rqmtSource:added',
+        payload: { 
+            rowIndex, 
+            sourceIndex: this.tasks[rowIndex].rqmtSources.length - 1 
+        }
+    });
+}
+
+removeRqmtSource(rowIndex, sourceIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].rqmtSources || sourceIndex < 0 || 
+        sourceIndex >= this.tasks[rowIndex].rqmtSources.length) return;
+    
+    // Удаляем из модели
+    this.tasks[rowIndex].rqmtSources.splice(sourceIndex, 1);
+    
+    // Удаляем из XML
+    const taskNode = this.taskNodes[rowIndex];
+    const rqmtSources = taskNode.getElementsByTagName('rqmtSource');
+    
+    if (sourceIndex < rqmtSources.length) {
+        taskNode.removeChild(rqmtSources[sourceIndex]);
+    }
+    
+    this._emitChange({
+        type: 'rqmtSource:removed',
+        payload: { rowIndex, sourceIndex }
+    });
+}
+
+setRqmtSources(rowIndex, sources) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    
+    const taskNode = this.taskNodes[rowIndex];
+    
+    // Удаляем все существующие rqmtSource из XML
+    const existingSources = taskNode.getElementsByTagName('rqmtSource');
+    while (existingSources.length > 0) {
+        taskNode.removeChild(existingSources[0]);
+    }
+    
+    // Обновляем модель
+    this.tasks[rowIndex].rqmtSources = [];
+    
+    // Добавляем новые источники
+    const doc = taskNode.ownerDocument;
+    sources.forEach(source => {
+        // Добавляем в модель
+        this.tasks[rowIndex].rqmtSources.push({...source});
+        
+        // Создаем XML элемент
+        const rqmtSourceElement = doc.createElement('rqmtSource');
+        if (source.sourceOfRqmt) {
+            rqmtSourceElement.setAttribute('sourceOfRqmt', source.sourceOfRqmt);
+        }
+        
+        if (source.sourceCriticality) {
+            const sourceTypeElement = doc.createElement('sourceType');
+            sourceTypeElement.setAttribute('sourceCriticality', source.sourceCriticality);
+            rqmtSourceElement.appendChild(sourceTypeElement);
+        }
+        
+        // Вставляем в правильное место
+        this.insertElementInCorrectOrder(taskNode, rqmtSourceElement, 'rqmtSource');
+    });
+    
+    this._emitChange({
+        type: 'rqmtSource:set',
+        payload: { rowIndex, sources }
+    });
+}
+
+updateRqmtSourceField(rowIndex, sourceIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].rqmtSources || sourceIndex < 0 || 
+        sourceIndex >= this.tasks[rowIndex].rqmtSources.length) return;
+    
+    // Обновляем модель
+    if (field === 'sourceOfRqmt') {
+        this.tasks[rowIndex].rqmtSources[sourceIndex].sourceOfRqmt = value;
+    } else if (field === 'sourceCriticality') {
+        // value должен быть массивом для sourceCriticality
+        this.tasks[rowIndex].rqmtSources[sourceIndex].sourceCriticality = value;
+    }
+    
+    // Обновляем XML
+    const taskNode = this.taskNodes[rowIndex];
+    const rqmtSources = taskNode.getElementsByTagName('rqmtSource');
+    
+    if (sourceIndex < rqmtSources.length) {
+        const rqmtSource = rqmtSources[sourceIndex];
+        
+        if (field === 'sourceOfRqmt') {
+            if (value) {
+                rqmtSource.setAttribute('sourceOfRqmt', value);
+            } else {
+                rqmtSource.removeAttribute('sourceOfRqmt');
+            }
+        } else if (field === 'sourceCriticality') {
+            // Удаляем все существующие sourceType
+            while (rqmtSource.firstChild) {
+                rqmtSource.removeChild(rqmtSource.firstChild);
+            }
+            
+            // Добавляем новые sourceType элементы
+            value.forEach(criticality => {
+                if (criticality) {
+                    const sourceType = taskNode.ownerDocument.createElement('sourceType');
+                    sourceType.setAttribute('sourceCriticality', criticality);
+                    rqmtSource.appendChild(sourceType);
+                }
+            });
+            
+            // Если нет sourceOfRqmt и нет sourceCriticality, удаляем элемент
+            if (!rqmtSource.hasAttribute('sourceOfRqmt') && value.length === 0) {
+                this.removeRqmtSource(rowIndex, sourceIndex);
+                return;
+            }
+        }
+    }
+    
+    this._emitChange({
+        type: 'rqmtSource:changed',
+        payload: { rowIndex, sourceIndex, field, value }
+    });
+}
+
+getRqmtSources(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return [];
+    return this.tasks[rowIndex].rqmtSources || [];
+}
     addPersonnel(rowIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
         
@@ -1239,81 +1673,6 @@ class ScheduleTableModel {
         return true;
     }
 
-
-    updateRemarksField(rowIndex, value) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-        
-        const node = this.taskNodes[rowIndex];
-        let remarks = node.getElementsByTagName('remarks')[0];
-        
-        // Если remarks нет, создаем его
-        if (!remarks) {
-            const doc = node.ownerDocument;
-            remarks = doc.createElement('remarks');
-            node.appendChild(remarks);
-            
-            // Создаем simplePara внутри remarks
-            const simplePara = doc.createElement('simplePara');
-            remarks.appendChild(simplePara);
-        }
-        
-        // Находим или создаем simplePara
-        let simplePara = remarks.getElementsByTagName('simplePara')[0];
-        if (!simplePara) {
-            const doc = node.ownerDocument;
-            simplePara = doc.createElement('simplePara');
-            remarks.appendChild(simplePara);
-        }
-        
-        // Устанавливаем текст в simplePara
-        simplePara.textContent = value;
-        
-        // Обновляем модель
-        this.tasks[rowIndex].remarks = value;
-        
-        this.changeListeners.forEach(fn => fn(this.getXML()));
-    }
-
-    updateRemarksApplic(rowIndex, applicId) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        
-        const node = this.taskNodes[rowIndex];
-        let remarks = node.getElementsByTagName('remarks')[0];
-        
-        // Если remarks нет, создаем его с правильной структурой
-        if (!remarks) {
-            const doc = node.ownerDocument;
-            remarks = doc.createElement('remarks');
-            
-            // Создаем simplePara внутри remarks
-            const simplePara = doc.createElement('simplePara');
-            remarks.appendChild(simplePara);
-            
-            this.insertElementInCorrectOrder(node, remarks, 'remarks');
-        }
-        
-        // Устанавливаем applicRefId на элемент remarks
-        if (applicId) {
-            remarks.setAttribute('applicRefId', applicId);
-        } else {
-            remarks.removeAttribute('applicRefId');
-        }
-        
-        // Обновляем модель данных
-        if (!this.tasks[rowIndex].fieldApplicabilities) {
-            this.tasks[rowIndex].fieldApplicabilities = {};
-        }
-        
-        if (applicId) {
-            this.tasks[rowIndex].fieldApplicabilities['remarks'] = applicId;
-        } else {
-            delete this.tasks[rowIndex].fieldApplicabilities['remarks'];
-        }
-        
-        this.changeListeners.forEach(fn => fn(this.getXML()));
-        return true;
-    }
-
     /**
      * Находит или создает productionMaintData для workAreaLocationGroup
      */
@@ -1483,7 +1842,6 @@ class ScheduleTableModel {
         } else {
             const accessPointRef = doc.createElement('accessPointRef');
             accessPointRef.setAttribute('accessPointNumber', '');
-            accessPointRef.setAttribute('accessPointTypeValue', '');
             workAreaLocationGroup.appendChild(accessPointRef);
         }
 
@@ -1495,7 +1853,7 @@ class ScheduleTableModel {
             applicRefId: null,
             type: type,
             zones: type === 'zone' ? [{ zoneNumber: '' }] : [],
-            accessPoints: type === 'access' ? [{ accessPointNumber: '', accessPointTypeValue: '' }] : []
+            accessPoints: type === 'access' ? [{ accessPointNumber: '' }] : []
         };
 
         if (!this.tasks[rowIndex].workAreaLocationGroups) {
@@ -1584,42 +1942,6 @@ addZoneToGroup(rowIndex, groupIndex) {
     });
 }
 
-/**
- * Добавляет точку доступа в группу
- */
-addAccessPointToGroup(rowIndex, groupIndex) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex >= groups.length) return;
-
-    const group = groups[groupIndex];
-    const doc = taskNode.ownerDocument;
-    const accessPointRef = doc.createElement('accessPointRef');
-    accessPointRef.setAttribute('accessPointNumber', '');
-    accessPointRef.setAttribute('accessPointTypeValue', '');
-    group.appendChild(accessPointRef);
-
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.push({ 
-        accessPointNumber: '', 
-        accessPointTypeValue: '' 
-    });
-
-    this._emitChange({
-        type: 'accessPoint:added',
-        payload: { 
-            rowIndex, 
-            groupIndex, 
-            accessIndex: this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length - 1 
-        }
-    });
-}
 
 removeZoneFromGroup(rowIndex, groupIndex, zoneIndex) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -1738,37 +2060,6 @@ updateZoneField(rowIndex, groupIndex, zoneIndex, field, value) {
     });
 }
 
-/**
- * Обновляет поле точки доступа
- */
-updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
-    if (accessIndex < 0 || accessIndex >= this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length) return;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex >= groups.length) return;
-
-    const group = groups[groupIndex];
-    const accessPoints = group.getElementsByTagName('accessPointRef');
-    
-    if (accessIndex < accessPoints.length) {
-        const accessPoint = accessPoints[accessIndex];
-        accessPoint.setAttribute(field, value);
-    }
-
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints[accessIndex][field] = value;
-
-    this._emitChange({
-        type: 'accessPoint:changed',
-        payload: { rowIndex, groupIndex, accessIndex, field, value }
-    });
-}
 
 updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -2407,7 +2698,21 @@ updateTaskSection(rowIndex, newSectionTitle) {
  * Вставляет элемент в правильную позицию согласно порядку S1000D
  */
 insertElementInCorrectOrder(parentNode, newElement, elementType) {
-    const order = [
+    try {
+  
+      // Проверяем валидность параметров
+      if (!parentNode || !newElement) {
+        console.error('Invalid parameters for insertElementInCorrectOrder');
+        return;
+      }
+  
+      // Проверяем, что newElement не уже является потомком parentNode
+      if (newElement.parentNode === parentNode) {
+        console.warn('Element is already a child of parentNode');
+        return;
+      }
+  
+      const order = [
         'task',
         'rqmtSource', 
         'preliminaryRqmts',
@@ -2416,28 +2721,59 @@ insertElementInCorrectOrder(parentNode, newElement, elementType) {
         'limit',
         'remarks',
         'relatedTask'
-    ];
-    
-    const currentIndex = order.indexOf(elementType);
-    if (currentIndex === -1) {
-        // Если тип элемента не найден в порядке, добавляем в конец
+      ];
+      
+      const currentIndex = order.indexOf(elementType);
+      if (currentIndex === -1) {
+        console.log('Element type not in order, appending to the end');
         parentNode.appendChild(newElement);
         return;
-    }
-    
-    // Ищем следующий элемент в порядке, чтобы вставить перед ним
-    for (let i = currentIndex + 1; i < order.length; i++) {
-        const nextElementType = order[i];
-        const nextElement = parentNode.getElementsByTagName(nextElementType)[0];
-        if (nextElement) {
-            parentNode.insertBefore(newElement, nextElement);
-            return;
+      }
+      
+      // Получаем ТОЛЬКО ПРЯМЫЕ потомки-элементы
+      const children = [];
+      for (let i = 0; i < parentNode.childNodes.length; i++) {
+        const child = parentNode.childNodes[i];
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          children.push(child);
         }
+      }
+  
+      console.log('Direct children of parentNode:', children.map(c => c.nodeName));
+  
+      // Ищем следующий элемент в порядке среди ПРЯМЫХ потомков
+      for (let i = currentIndex + 1; i < order.length; i++) {
+        const nextElementType = order[i];
+        console.log('Looking for next element type:', nextElementType);
+        
+        const nextElement = children.find(child => 
+          child.nodeName.toLowerCase() === nextElementType.toLowerCase()
+        );
+        
+        if (nextElement && nextElement.parentNode === parentNode) {
+          console.log('Found next element:', nextElement);
+          parentNode.insertBefore(newElement, nextElement);
+          console.log('Successfully inserted new element before', nextElementType);
+          return;
+        }
+      }
+      
+      // Если следующих элементов нет, добавляем в конец
+      console.log('No next element found, appending to the end');
+      parentNode.appendChild(newElement);
+      
+    } catch (error) {
+      console.error('Error in insertElementInCorrectOrder:', error);
+      // Fallback: добавляем в конец
+      if (parentNode && newElement) {
+        try {
+          parentNode.appendChild(newElement);
+        } catch (fallbackError) {
+          console.error('Even fallback failed:', fallbackError);
+        }
+      }
     }
-    
-    // Если следующих элементов нет, добавляем в конец
-    parentNode.appendChild(newElement);
-}
+  }
 
 addTaskDuration(rowIndex) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -2665,6 +3001,11 @@ removeApplicForTaskDuration(rowIndex, durationIndex) {
     return true;
 }
 
+  
+
+  
+
+
     _emitChange(meta = {}) {
         const xml = this.getXML ? this.getXML() : this.$xml;
         // shallow copy listeners to avoid mutation during iteration
@@ -2680,48 +3021,349 @@ removeApplicForTaskDuration(rowIndex, durationIndex) {
         });
     }
 
+    /* REMARKS */
+
+    updateLimitRemarks(rowIndex, limitIndex, remarks) {
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+        if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return;
+      
+        const taskNode = this.taskNodes[rowIndex];
+        const limits = taskNode.getElementsByTagName('limit');
+        if (limitIndex >= limits.length) return;
+      
+        const limit = limits[limitIndex];
+        
+        // Находим или создаем структуру remarks/simplePara
+        let remarksElement = limit.getElementsByTagName('remarks')[0];
+        if (!remarksElement) {
+          remarksElement = taskNode.ownerDocument.createElement('remarks');
+          // Вставляем remarks ПОСЛЕДНИМ в limit
+          limit.appendChild(remarksElement);
+        }
+        
+        let simplePara = remarksElement.getElementsByTagName('simplePara')[0];
+        if (!simplePara) {
+          simplePara = taskNode.ownerDocument.createElement('simplePara');
+          remarksElement.appendChild(simplePara);
+        }
+        
+        simplePara.textContent = remarks;
+      
+        // Обновляем модель данных
+        if (!this.tasks[rowIndex].limits[limitIndex].remarks) {
+          this.tasks[rowIndex].limits[limitIndex].remarks = {};
+        }
+        this.tasks[rowIndex].limits[limitIndex].remarks.text = remarks;
+      
+        this._emitChange({
+          type: 'remarks:changed',
+          payload: { rowIndex, limitIndex, target: 'limit', remarks }
+        });
+      }
+
+      updateWorkAreaRemarks(rowIndex, groupIndex, remarks) {
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+        if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
+            groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
+      
+        const taskNode = this.taskNodes[rowIndex];
+        const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
+        const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
+        
+        if (groupIndex >= groups.length) return;
+      
+        const group = groups[groupIndex];
+        
+        // Находим или создаем workLocation
+        let workLocation = group.getElementsByTagName('workLocation')[0];
+        if (!workLocation) {
+          workLocation = taskNode.ownerDocument.createElement('workLocation');
+          // Вставляем workLocation ПЕРВЫМ в группу
+          if (group.firstChild) {
+            group.insertBefore(workLocation, group.firstChild);
+          } else {
+            group.appendChild(workLocation);
+          }
+        }
+        
+        // Находим или создаем workArea
+        let workArea = workLocation.getElementsByTagName('workArea')[0];
+        if (!workArea) {
+          workArea = taskNode.ownerDocument.createElement('workArea');
+          // Вставляем workArea ПЕРВЫМ в workLocation
+          if (workLocation.firstChild) {
+            workLocation.insertBefore(workArea, workLocation.firstChild);
+          } else {
+            workLocation.appendChild(workArea);
+          }
+        }
+        
+        workArea.textContent = remarks;
+      
+        // Обновляем модель данных
+        if (!this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks) {
+          this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks = {};
+        }
+        this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks.text = remarks;
+      
+        this._emitChange({
+          type: 'remarks:changed',
+          payload: { rowIndex, groupIndex, target: 'workArea', remarks }
+        });
+      }
+
+      updateTaskRemarks(rowIndex, remarks) {
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+      
+        const node = this.taskNodes[rowIndex];
+        
+        // Находим или создаем структуру remarks/simplePara
+        let remarksElement = node.getElementsByTagName('remarks')[0];
+        if (!remarksElement) {
+          remarksElement = node.ownerDocument.createElement('remarks');
+          this.insertElementInCorrectOrder(node, remarksElement, 'remarks');
+        }
+        
+        let simplePara = remarksElement.getElementsByTagName('simplePara')[0];
+        if (!simplePara) {
+          simplePara = node.ownerDocument.createElement('simplePara');
+          remarksElement.appendChild(simplePara);
+        }
+        
+        simplePara.textContent = remarks;
+      
+        // Обновляем модель данных
+        this.tasks[rowIndex].remarks = remarks;
+      
+        this._emitChange({
+          type: 'remarks:changed',
+          payload: { rowIndex, target: 'task', remarks }
+        });
+      }
+
+      getRemarks(targetType, rowIndex, index = null) {
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return '';
+        
+        const taskNode = this.taskNodes[rowIndex];
+        
+        switch (targetType) {
+          case 'limit':
+            if (!this.tasks[rowIndex].limits || index < 0 || index >= this.tasks[rowIndex].limits.length) return undefined;
+            
+            const limits = taskNode.getElementsByTagName('limit');
+            if (index >= limits.length) return undefined;
+            
+            const limit = limits[index];
+            const limitRemarks = limit.getElementsByTagName('remarks')[0];
+            if (limitRemarks) {
+              const simplePara = limitRemarks.getElementsByTagName('simplePara')[0];
+              return simplePara ? simplePara.textContent : undefined;
+            }
+            return undefined;
+          
+          case 'workArea':
+            if (!this.tasks[rowIndex].workAreaLocationGroups || index < 0 || 
+                index >= this.tasks[rowIndex].workAreaLocationGroups.length) return undefined;
+            
+            const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
+            const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
+            if (index >= groups.length) return undefined;
+            
+            const group = groups[index];
+            const workLocation = group.getElementsByTagName('workLocation')[0];
+            if (workLocation) {
+              const workArea = workLocation.getElementsByTagName('workArea')[0];
+              return workArea ? workArea.textContent : undefined;
+            }
+            return undefined;
+          
+          case 'task':
+            const taskRemarks = taskNode.getElementsByTagName('remarks')[0];
+            if (taskRemarks) {
+              const simplePara = taskRemarks.getElementsByTagName('simplePara')[0];
+              return simplePara ? simplePara.textContent : undefined;
+            }
+            return undefined;
+          
+          default:
+            return undefined;
+        }
+      }
+
+      /**
+ * Проверяет есть ли примечание у элемента
+ */
+      hasRemarks(targetType, rowIndex, index = null) {
+        // Используем this.tasks вместо this.model.tasks, так как мы уже в модели
+        if (rowIndex < 0 || rowIndex >= this.tasks.length) return false;
+        
+        const task = this.tasks[rowIndex];
+        if (!task) return false;
+        
+        switch (targetType) {
+          case 'limit':
+            if (!task.limits || index < 0 || index >= task.limits.length) return false;
+            const limit = task.limits[index];
+            return limit.remarks && limit.remarks.text && limit.remarks.text.length > 0;
+          
+          case 'workArea':
+            if (!task.workAreaLocationGroups || index < 0 || index >= task.workAreaLocationGroups.length) return false;
+            const group = task.workAreaLocationGroups[index];
+            return group.remarks && group.remarks.text && group.remarks.text.length > 0;
+          
+          case 'task':
+            return task.remarks && task.remarks.length > 0;
+          
+          default:
+            return false;
+        }
+      }
+
+/**
+ * Быстро добавляет пустое примечание к элементу
+ */
+addRemarksQuick(targetType, rowIndex, index = null) {
+    // Создаем пустое примечание
+    const defaultText = "";
     
+    let result = false;
+    switch (targetType) {
+      case 'limit':
+        result = this.updateLimitRemarks(rowIndex, index, defaultText);
+        break;
+      case 'workArea':
+        result = this.updateWorkAreaRemarks(rowIndex, index, defaultText);
+        break;
+      case 'task':
+        result = this.updateTaskRemarks(rowIndex, defaultText);
+        break;
+      default:
+        return false;
+    }
+    
+    // Принудительно обновляем интерфейс после добавления
+    if (result) {
+      this._emitChange({
+        type: 'remarks:added',
+        payload: { rowIndex, targetType, index, remarks: defaultText }
+      });
+    }
+    
+    return result;
+  }
+  
+
+    /* REMARKS END*/
+
+
+
+    /* ZONE */
+
+    getZoneGroups(rowIndex) {
+        if (rowIndex < 0 || rowIndex >= this.tasks.length) return [];
+        const task = this.tasks[rowIndex];
+        return (task.workAreaLocationGroups || []).filter(group => 
+            group.type === 'zone' || group.zones.length > 0
+        );
+    }
+
+        /**
+     * Получает только группы с точками доступа
+     */
+    getAccessPointGroups(rowIndex) {
+        if (rowIndex < 0 || rowIndex >= this.tasks.length) return [];
+        const task = this.tasks[rowIndex];
+        return (task.workAreaLocationGroups || []).filter(group => 
+            group.type === 'access' || group.accessPoints.length > 0
+        );
+    }
+
+    /**
+ * Определяет, является ли группа зональной
+ */
+isZoneGroup(rowIndex, groupIndex) {
+    const task = this.tasks[rowIndex];
+    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
+    const group = task.workAreaLocationGroups[groupIndex];
+    return group.zones && group.zones.length > 0;
 }
 
+/**
+ * Определяет, является ли группой доступа
+ */
+isAccessGroup(rowIndex, groupIndex) {
+    const task = this.tasks[rowIndex];
+    if (!task || !task.workAreaLocationGroups || groupIndex >= task.workAreaLocationGroups.length) return false;
+    const group = task.workAreaLocationGroups[groupIndex];
+    return group.accessPoints && group.accessPoints.length > 0;
+}
 
-// taskTitle 
+addAccessPointToGroup(rowIndex, groupIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
+        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
 
-
-/*
-
-Там где <taskDefinition applicRefId="app-07" этот applicRefId сходится с id в 
-
-<applic id="app-02">
-				<displayText>
-					<simplePara>C УСТАНОВЛЕННОЙ ОПЦИЕЙ 2128-101</simplePara>
-				</displayText>
-			</applic>
-
-      ТО этот текст из simplePara добавляется над строчкой с этой задачей во всю длинну
-
-
-  <commonInfo> -- текст из этого тега идёт перед задачами во всю строку с форматированием по центру
-				<title>СИСТЕМА КОНДИЦИОНИРОВАНИЯ ВОЗДУХА</title>
-				<para/>
-			</commonInfo>    
-
-
-  <taskDefinition taskIdent="MT-212100-01" taskCode="taskcd02">
-				<task>
-					<taskTitle>MSI 21-31-00: СИСТЕМА АВТОМАТИЧЕСКОГО РЕГУЛИРОВАНИЯ ДАВЛЕНИЯ</taskTitle>
-					<taskDescr>
-						<simplePara>КОНТРОЛЬ ИСПРАВНОСТИ ВЫПУСКНОГО И НАЗЕМНОГО КЛАПАНОВ ПРИ ПОМОЩИ КНОПКИ-ТАБЛО «DITCHING» НА ПУЛЬТЕ УПРАВЛЕНИЯ CAB PRESSURE С ЦЕЛЬЮ УБЕДИТЬСЯ В КОРРЕКТНОМ (И СВОЕВРЕМЕННОМ) ОТКРЫТИИ И ЗАКРЫТИИ КЛАПАНОВ ПРИ ВЫПОЛНЕНИИ ЦИКЛА ПРИВОДНЕНИЯ</simplePara>
-					</taskDescr>
-				</task>
-    эта штука показывает <taskTitle> под какой сплощшной горизонтальной линией писать - 
-
-    taskCode="taskcd02" -- видимо показывает именно код который показывает под какой штукой что писать - его выводить не надо
-
-
-    taskIdent="343434-07" -- это "Номер задачи ИДПТО"
-
-    taskDefinitionAlts - понять что за taskDefinitionAlts - чем от обычного отличается в ней тоже свои taskCode="taskcd09"
-
+    const taskNode = this.taskNodes[rowIndex];
+    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
+    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
     
+    if (groupIndex >= groups.length) return;
 
-*/
+    const group = groups[groupIndex];
+    const doc = taskNode.ownerDocument;
+    const accessPointRef = doc.createElement('accessPointRef');
+    accessPointRef.setAttribute('accessPointNumber', '');
+    // Не добавляем accessPointTypeValue
+    group.appendChild(accessPointRef);
+
+    // Обновляем модель
+    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.push({ 
+        accessPointNumber: ''
+    });
+
+    this._emitChange({
+        type: 'accessPoint:added',
+        payload: { 
+            rowIndex, 
+            groupIndex, 
+            accessIndex: this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length - 1 
+        }
+    });
+}
+
+updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
+        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
+    if (accessIndex < 0 || accessIndex >= this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.length) return;
+
+    // Обновляем модель
+    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints[accessIndex][field] = value;
+
+    // Обновляем XML (без accessPointTypeValue)
+    const taskNode = this.taskNodes[rowIndex];
+    const preliminaryRqmts = taskNode.getElementsByTagName('preliminaryRqmts')[0];
+    if (!preliminaryRqmts) return;
+
+    const workAreaPmd = this.findWorkAreaProductionMaintData(preliminaryRqmts);
+    if (!workAreaPmd) return;
+
+    const workAreaGroups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
+    if (groupIndex >= workAreaGroups.length) return;
+
+    const workAreaGroup = workAreaGroups[groupIndex];
+    const accessPointRefs = workAreaGroup.getElementsByTagName('accessPointRef');
+    if (accessIndex >= accessPointRefs.length) return;
+
+    const accessPointRef = accessPointRefs[accessIndex];
+    accessPointRef.setAttribute(field, value);
+    
+    this._emitChange({
+        type: 'accessPoint:changed',
+        payload: { rowIndex, groupIndex, accessIndex, field, value }
+    });
+}
+
+    /* ZONE END */
+}
+

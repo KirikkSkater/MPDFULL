@@ -5,18 +5,28 @@
   <meta charset="UTF-8">
   <script src="jquery/external/jquery/jquery.js"></script>
   <script type="text/javascript" src="jquery/jquery-ui.js"></script>
+  <script type="text/javascript" src="lz-string.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="styles/style.css" />
-  <link rel="stylesheet" href="styles/style_toolbar.css" />
+  
   <link rel="stylesheet" href="styles/style_fake_headers.css" />
   <link rel="stylesheet" href="table_temp_style.css" />
   <link rel="stylesheet" href="styles/style_sidebar.css" />
   <link rel="stylesheet" href="styles/modal_window.css" />
   <link rel="stylesheet" href="bootstrap.min.css" />
+  <link rel="stylesheet" href="styles_new/stylebase.css" />
+  <link rel="stylesheet" href="styles/style_toolbar.css" />
+  <link rel="stylesheet" href="styles_new/headers.css" />
+  <link rel="stylesheet" href="styles/style_zone.css" />
+  
 
   <style>
+
+    .body{
+      /* overflow: hidden; */
+    }
     table {
-      margin-top: 75px;
+      margin-top: 0px;
       width: 200%;
       min-width: 2000px;
       overflow-x: auto;
@@ -33,9 +43,62 @@
       border: 1px solid #000;
     }
 
+    #table-container {
+      scrollbar-width: auto !important; /* Для Firefox */
+      -ms-overflow-style: auto !important; /* Для IE/Edge */
+    }
+
+    #table-container::-webkit-scrollbar {
+      width: 10px !important;
+      height: 10px !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    #table-container::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+
+    #table-container::-webkit-scrollbar-thumb {
+      background: #888 !important;
+      border-radius: 4px !important;
+      border: 3px solid #f1f1f1 !important;
+    }
+
+    #table-container::-webkit-scrollbar-thumb:hover {
+      background: #555 !important;
+    }
+
+    /* Убедитесь, что скроллбар не скрыт где-то в глобальных стилях */
+    *::-webkit-scrollbar {
+      display: block !important; /* Убрать если есть display: none */
+    }
+
+    #table-container {
+      scrollbar-color: #b9c4eb #e9ecef !important; /* Firefox */
+    }
+
+#table-container::-webkit-scrollbar-thumb {
+  background-color: #a4a4a4 !important;
+  box-shadow: inset 2 2 2px rgba(0,0,0,0.3) !important;
+}
+
+#table-container::-webkit-scrollbar-track {
+  background-color: #e9ecef !important;
+  box-shadow: inset 2 2 2px rgba(0,0,0,0.1) !important;
+}
+
+
     table td {
       border: 1px solid #000;
       padding: 5px;
+    }
+
+    tbody td {
+      /* border: 1px solid #000; */
+      padding: 4px;
     }
 
     .editable {
@@ -89,38 +152,62 @@
 
   <!-- Панель загрузки/выгрузки -->
 
-  <div id="toolbar" role="toolbar" class="toolbar">
-    <div class="text-group">
-      <button class="button-toolbar" id="toggle-sidebar-btn">Применимости</button>
+  <div id="toolbar" role="toolbar" class="toolbar compact-toolbar">
+    <!-- Левая часть: кнопка Применимости + бейджи -->
+    <div class="toolbar-left">
+        <button class="btn btn-sm btn-outline-primary toolbar-blue" id="toggle-sidebar-btn">
+            <span class="btn-text">Применимости</span>
+        </button>
     </div>
 
-    
-
-    <div class="btn-group" role="group">
-      <input type="file" id="upload-xml" accept=".xml" style="display:none;">
-    <button id="select-dataset-btn" class="button-toolbar" type="button" title="Выбрать модуль данных"
-      style="margin-right:8px;">Выбрать модуль данных</button>
-    <button id="upload-btn" class="button-toolbar" style=" margin-right: 5px;">Загрузить XML</button>
-    <button id="download-btn" class="button-toolbar" style=" margin-right: 5px;">Выгрузить XML</button>
-      <div class="info-code-block">Инфокод: </div>
-      <div id="infoCodeId" class="info-code-block"></div>
-      <button disabled class="button-toolbar" id="preview-btn" type="button" title="Предпросмотр"
-        style="margin-right: 5px; width: auto; padding-left: 4px; padding-right: 4px;">
-        <img src="images/hidden.png" id="hidden-icon" class="icon icon-preview" style="display: none;">
-        <img src="images/preview.png" id="preview-icon" class="icon icon-preview">
-      </button>
-      <button disabled class="button-toolbar edit" id="edit-btn" type="button">Редактировать</button>
-      <button disabled title="Отменить изменения" class="button-toolbar exit" id="exit-btn" type="button">Отмена</button>
+    <!-- Правая часть: все остальные элементы -->
+    <div class="toolbar-right">
+        <input type="file" id="upload-xml" accept=".xml" style="display:none;">
+        
+        <button id="select-dataset-btn" class="btn btn-sm btn-outline-primary toolbar-blue" type="button" 
+                title="Выбрать модуль данных">
+            <span class="btn-text">Выбрать модуль</span>
+        </button>
+        
+        <button id="upload-btn" class="btn btn-sm btn-outline-primary toolbar-blue" type="button">
+            <span class="btn-text">Загрузить XML</span>
+        </button>
+        
+        <button id="download-btn" class="btn btn-sm btn-outline-primary toolbar-blue" type="button">
+            <span class="btn-text">Выгрузить XML</span>
+        </button>
+        
+        <div class="info-code-box">
+            <span class="info-label">Инфокод:</span>
+            <span id="infoCodeId" class="info-value"></span>
+        </div>
+        
+        <div class="toolbar-actions">
+            <button disabled class="btn btn-sm btn-outline-primary preview-btn toolbar-blue" id="preview-btn" 
+                    type="button" title="Предпросмотр">
+                <img src="images/hidden.png" id="hidden-icon" class="icon icon-btn" style="display: none;">
+                <img src="images/preview.png" id="preview-icon" class="icon icon-btn">
+            </button>
+            <button disabled class="btn btn-sm btn-outline-primary toolbar-blue edit" id="edit-btn" type="button">
+                <span class="btn-text">Редактировать</span>
+            </button>
+            <button disabled class="btn btn-sm btn-outline-danger toolbar-red exit" id="exit-btn" 
+                    type="button" title="Отменить изменения">
+                <span class="btn-text">Отмена</span>
+            </button>
+        </div>
     </div>
-  </div>
+</div>
 
-  <div id="main-wrapper" style="display: flex; overflow-x: hidden; position: relative;">
+  <div id="main-wrapper" style="display: flex; position: relative;">
     <div id="applic-sidebar" class="sidebar hidden"></div>
     <div id="table-container" class="table-responsive table-wrapper disable"></div>
   </div>
 
   <script src="src/core/XMLParser.js"></script>
   <script src="src/core/DndManager.js"></script>
+  <script src="src/data/ZoneDataManager.js"></script>
+  <script src="src/data/AccessPointDataManager.js"></script>
   <script src="src/core/SheduledController.js"></script>
   <script src="src/core/HandlerTeamcenter.js"></script>
   <script src="src/core/ScheduleTableModel.js"></script>
@@ -130,6 +217,18 @@
   <script src="src/view/ApplicSidebar.js"></script>
   <script src="src/data/DictionariesTC.js"></script>
   <script src="src/core/HandlerInfoCode.js"></script>
+
+
+  <script src="src/view/ViewRegistry.js"></script>
+  
+  <script src="src/view/BaseCellView.js"></script>
+  <script src="src/view/TaskDurationView.js"></script>
+  <script src="src/view/LimitView.js"></script>
+  <script src="src/view/RqmtSourceView.js"></script>
+  <script src="src/view/AccessPointView.js"></script>
+  <script src="src/view/ZoneView.js"></script>
+  <script src="src/view/PersonalView.js"></script>
+  
   
   <script src="bootstrap.min.js"></script>
   <script src="bootstrap.bundle.min.js"></script>
@@ -137,10 +236,25 @@
   <script src="src/core/DmCodeModal.js"></script>
   <script>
     (function () {
+
+      $(document).ready(async function() {
+        // Инициализируем оба менеджера данных параллельно
+        const [zonesLoaded, accessPointsLoaded] = await Promise.all([
+            window.zoneDataManager.init(),
+            window.accessPointDataManager.init()
+        ]);
+        
+        console.log('Зоны загружены:', zonesLoaded);
+        console.log('Точки доступа загружены:', accessPointsLoaded);
+        
+        // // Затем инициализируем приложение
+        // initScheduleTable();
+    });
+
       var parser = new XMLParser();
       var factory = new DModuleFactory();
       var infoCode = '0B2A';
-      var tcHandler = new HandlerTeamcenter('http://10.16.6.3:9090/');
+      var tcHandler = new HandlerTeamcenter('http://localhost:9090/');
       window.tcHandler = tcHandler;
 
       tcHandler.getDataset("uiddict")
@@ -155,6 +269,7 @@
         $container: $('#table-container'),
         infoCode: infoCode
       });
+      
 
       window.currentDatasetUid = null;
 
@@ -181,7 +296,7 @@
       };
 
       window.controller.addfinishEditing(window.finishEditing);
-      window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
+      // window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
 
       $('#select-dataset-btn').on('click', async function () {
         const uid = prompt("Введите UID модуля данных:");
@@ -191,7 +306,7 @@
           const xmlString = await tcHandler.getDataset(uid);
           window.currentDatasetUid = uid;
           window.controller.init(xmlString);
-          window.controller.bindToolbar();
+          // window.controller.bindToolbar();
         } catch (err) {
           console.error(err);
           alert('Ошибка: ' + err.message);
@@ -202,7 +317,11 @@
 
       // Загрузка XML
       $('#upload-btn').on('click', function () {
+        if (window.controller.handleSaveClick()){
+          window.controller.destroy();
+          // window.controller.setEditMode(false);
         $('#upload-xml').click();
+        }
       });
 
       $('#upload-xml').on('change', function (e) {
@@ -212,7 +331,7 @@
         reader.onload = function (event) {
           const xmlString = event.target.result;
           window.controller.init(xmlString);
-          window.controller.bindToolbar();
+          // window.controller.bindToolbar();
           window.currentDatasetUid = null;
         };
         reader.readAsText(file);
@@ -234,7 +353,12 @@
         URL.revokeObjectURL(url);
       });
     })();
+
+
+    
   </script>
+
+  
 
 </body>
 

@@ -1,108 +1,153 @@
+/**
+ * DmCodeModal - модальное окно для редактирования DM Code
+ * С динамической фильтрацией, пагинацией и проверкой существования документов
+ */
 class DmCodeModal {
     constructor(model) {
         this.model = model;
         this.currentRowIndex = null;
         this.currentDmRefIndex = null;
         this.isEditMode = false;
+        this.currentApplicId = null;
+        
+        // Кеш для предложений документов
+        this.suggestionsCache = new Map();
+        this.allSuggestions = [];
+        this.filteredSuggestions = [];
+        
+        // Пагинация
+        this.currentPage = 1;
+        this.itemsPerPage = 5;
+        
+        // Флаг ручного редактирования preview
+        this.isManuallyEdited = false;
         
         this.createModal();
         this.bindEvents();
     }
 
+    /**
+     * Создание HTML структуры модального окна
+     */
     createModal() {
         this.modalHTML = `
-            <div id="dmCodeModal" class="modal fade" tabindex="-1">
-                <div class="modal-dialog modal-lg">
+            <div class="modal fade" id="dmCodeModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">Код модуля данных</h5>
-                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h5 class="modal-title">Добавить/Редактировать DM Code</h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
                         </div>
                         <div class="modal-body">
-                            <form id="dmCodeForm">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="modelIdentCode">Идентификационный код модели *</label>
-                                            <input type="text" class="form-control" id="modelIdentCode" 
-                                                   maxlength="5" pattern="[A-Za-z0-9]{0,5}" required>
-                                            <small class="form-text text-muted">5 знаков (буквы и цифры)</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="systemDiffCode">Отличительный код системы *</label>
-                                            <input type="text" class="form-control" id="systemDiffCode" 
-                                                   maxlength="1" pattern="[A-Z]" required>
-                                            <small class="form-text text-muted">1 буква в верхнем регистре</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="systemCode">Система *</label>
-                                            <input type="text" class="form-control" id="systemCode" 
-                                                   maxlength="2" pattern="[0-9]{2}" required>
-                                            <small class="form-text text-muted">2 цифры</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="subSystemCode">Подсистема *</label>
-                                            <input type="text" class="form-control" id="subSystemCode" 
-                                                   maxlength="1" pattern="[0-9]{1}" required>
-                                            <small class="form-text text-muted">1 цифра</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="subSubSystemCode">Подподсистема *</label>
-                                            <input type="text" class="form-control" id="subSubSystemCode" 
-                                                   maxlength="1" pattern="[0-9]{1}" required>
-                                            <small class="form-text text-muted">1 цифра</small>
-                                        </div>
+                            <!-- Структурированный ввод -->
+                            <div class="dm-code-structured-section">
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="modelIdentCode">Идентификационный код модели *</label>
+                                        <input type="text" class="form-control dm-field required-field" 
+                                               id="modelIdentCode" maxlength="14" placeholder="Например: LLM">
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="assyCode">Узел или сборочная единица *</label>
-                                            <input type="text" class="form-control" id="assyCode" 
-                                                   maxlength="2" pattern="[0-9]{2}" required>
-                                            <small class="form-text text-muted">2 цифры</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="disassyCode">Код демонтажа *</label>
-                                            <input type="text" class="form-control" id="disassyCode" 
-                                                   maxlength="2" pattern="[0-9]{2}" required>
-                                            <small class="form-text text-muted">2 цифры</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="disassyCodeVariant">Вариант кода демонтажа *</label>
-                                            <input type="text" class="form-control" id="disassyCodeVariant" 
-                                                   maxlength="3" pattern="[A-Z0-9]{1,3}" required>
-                                            <small class="form-text text-muted">3 знака (буквы в верхнем регистре и цифры)</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="infoCode">Информационный код *</label>
-                                            <input type="text" class="form-control" id="infoCode" 
-                                                   maxlength="3" pattern="[A-Za-z0-9]{3}" required>
-                                            <small class="form-text text-muted">3 знака (буквы и цифры)</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="infoCodeVariant">Вариант информационного кода *</label>
-                                            <input type="text" class="form-control" id="infoCodeVariant" 
-                                                   maxlength="1" pattern="[A-Z]" required>
-                                            <small class="form-text text-muted">1 буква в верхнем регистре</small>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="itemLocationCode">Код расположения изделия *</label>
-                                            <input type="text" class="form-control" id="itemLocationCode" 
-                                                   maxlength="1" pattern="[A-Z]" required>
-                                            <small class="form-text text-muted">1 буква в верхнем регистре</small>
-                                        </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="systemDiffCode">Отличительный код системы *</label>
+                                        <input type="text" class="form-control dm-field required-field" 
+                                               id="systemDiffCode" maxlength="4" placeholder="Например: A">
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="dmRefApplicRefId">Применимость</label>
-                                    <select class="form-control" id="dmRefApplicRefId">
-                                        <option value="">Без применимости</option>
-                                    </select>
+                                
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="systemCode">Система *</label>
+                                        <input type="text" class="form-control dm-field required-field" 
+                                               id="systemCode" maxlength="3" placeholder="Например: 21">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="subSystemCode">Подсистема</label>
+                                        <input type="text" class="form-control dm-field" id="subSystemCode" 
+                                               maxlength="1" placeholder="0">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="subSubSystemCode">Под-подсистема</label>
+                                        <input type="text" class="form-control dm-field" id="subSubSystemCode" 
+                                               maxlength="1" placeholder="0">
+                                    </div>
                                 </div>
-                            </form>
+
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="assyCode">Код сборки</label>
+                                        <input type="text" class="form-control dm-field" id="assyCode" 
+                                               maxlength="4" placeholder="00">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="disassyCode">Код разборки</label>
+                                        <input type="text" class="form-control dm-field" id="disassyCode" 
+                                               maxlength="2" placeholder="01">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="disassyCodeVariant">Вариант разборки</label>
+                                        <input type="text" class="form-control dm-field" id="disassyCodeVariant" 
+                                               maxlength="3" placeholder="A01">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="infoCode">Информационный код</label>
+                                        <input type="text" class="form-control dm-field" id="infoCode" 
+                                               maxlength="3" placeholder="040">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="infoCodeVariant">Вариант информационного кода</label>
+                                        <input type="text" class="form-control dm-field" id="infoCodeVariant" 
+                                               maxlength="1" placeholder="A">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="itemLocationCode">Код местоположения</label>
+                                        <input type="text" class="form-control dm-field" id="itemLocationCode" 
+                                               maxlength="1" placeholder="A">
+                                    </div>
+                                </div>
+
+                                <!-- Редактируемый превью с проверкой -->
+                                <div class="form-group mt-3">
+                                    <label for="dmCodePreviewInput">Сформированный DM Code (можно редактировать):</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="dmCodePreviewInput" 
+                                               placeholder="Заполните обязательные поля" readonly>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" 
+                                                    id="editPreviewBtn" title="Редактировать вручную">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" type="button" 
+                                                    id="checkDocBtn" style="display: none;" 
+                                                    title="Проверить наличие документа">
+                                                <i class="fas fa-search"></i> Проверить
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted" id="docCheckResult"></small>
+                                </div>
+
+                                <!-- Предложения существующих документов с пагинацией -->
+                                <div id="dmSuggestionsContainer" class="dm-suggestions-container" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="text-muted mb-0">
+                                            <i class="fas fa-lightbulb"></i> 
+                                            Найдено документов: <span id="totalDocsCount">0</span>
+                                        </h6>
+                                        <div class="dm-pagination" id="dmPagination"></div>
+                                    </div>
+                                    <div id="dmSuggestionsList" class="dm-suggestions-list"></div>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
-                            <button type="button" class="btn btn-primary" id="saveDmCodeBtn">Сохранить</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-cancel edit-mode-btn" data-dismiss="modal"><span>Отмена</span></button>
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-add edit-mode-btn" id="saveDmCodeBtn">Сохранить</button>
                         </div>
                     </div>
                 </div>
@@ -110,177 +155,403 @@ class DmCodeModal {
         `;
 
         $('body').append(this.modalHTML);
-        this.$modal = $('#dmCodeModal');
-        this.$form = $('#dmCodeForm');
-        this.$saveBtn = $('#saveDmCodeBtn');
-        
-        this.setupValidation();
-        this.populateApplicabilityOptions();
+        this.modal = $('#dmCodeModal');
     }
 
+    /**
+     * Привязка событий
+     */
     bindEvents() {
         const self = this;
-        
-        this.$saveBtn.on('click', () => this.saveDmCode());
-        
-        // Обработка событий модального окна
-        this.$modal.on('shown.bs.modal', function () {
-            // Фокусируемся на первом поле после открытия
-            setTimeout(() => {
-                self.$form.find('input')[0]?.focus();
-            }, 100);
+
+        // Автоматическая валидация и фильтрация при вводе в любое поле
+        this.modal.on('input', '.dm-field', function() {
+            if (!self.isManuallyEdited) {
+                self.updatePreview();
+                self.validateAndFilterSuggestions();
+            }
         });
-        
-        this.$modal.on('hidden.bs.modal', function () {
-            // Очищаем форму при закрытии
-            self.$form[0].reset();
-            self.$saveBtn.prop('disabled', true);
+
+        // Кнопка редактирования preview
+        this.modal.on('click', '#editPreviewBtn', function() {
+            const input = $('#dmCodePreviewInput');
+            const btn = $(this);
+            
+            if (input.prop('readonly')) {
+                // Включаем режим редактирования
+                input.prop('readonly', false).focus().select();
+                btn.html('<i class="fas fa-times"></i>');
+                btn.attr('title', 'Отменить редактирование');
+                self.isManuallyEdited = true;
+                $('#checkDocBtn').show();
+            } else {
+                // Отключаем режим редактирования
+                input.prop('readonly', true);
+                btn.html('<i class="fas fa-edit"></i>');
+                btn.attr('title', 'Редактировать вручную');
+                self.isManuallyEdited = false;
+                $('#checkDocBtn').hide();
+                $('#docCheckResult').text('');
+                self.updatePreview();
+            }
         });
-    
-        // Более надежная валидация при любом изменении
-        this.$form.find('input').on('input change propertychange', function() {
-            console.log('Input changed:', this.id, this.value);
-            self.validateForm();
+
+        // Проверка существования документа
+        this.modal.on('click', '#checkDocBtn', function() {
+            self.checkDocumentExistence();
         });
-        
-        // Для select также добавляем валидацию
-        $('#dmRefApplicRefId').on('change', () => {
-            this.validateForm();
+
+        // Выбор предложенного документа
+        this.modal.on('click', '.dm-suggestion-item', function() {
+            const dmCode = $(this).data('dmcode');
+            self.fillFieldsFromDmCode(dmCode);
+            self.isManuallyEdited = false;
+            $('#dmCodePreviewInput').prop('readonly', true);
+            $('#editPreviewBtn').html('<i class="fas fa-edit"></i>');
+            $('#checkDocBtn').hide();
         });
-        
-        // Принудительное приведение к верхнему регистру для буквенных полей
-        this.$form.find('input[pattern*="[A-Z]"]').on('input', function() {
-            this.value = this.value.toUpperCase();
-            self.validateForm(); // повторная валидация после изменения регистра
+
+        // Пагинация
+        this.modal.on('click', '.dm-page-btn', function() {
+            const page = $(this).data('page');
+            self.currentPage = page;
+            self.renderSuggestions();
         });
-    
-        // Валидация при потере фокуса
-        this.$form.find('input').on('blur', function() {
-            self.validateForm();
-        });
+
+        // Сохранение
+        $('#saveDmCodeBtn').on('click', () => this.saveDmCode());
+
+        // Очистка при закрытии
+        this.modal.on('hidden.bs.modal', () => this.resetModal());
     }
 
-    setupValidation() {
-        // Добавляем кастомные сообщения валидации
-        this.$form.find('input').each((index, input) => {
-            input.addEventListener('invalid', () => {
-                this.showCustomValidity(input);
+    /**
+     * Валидация обязательных полей и запрос/фильтрация предложений
+     */
+    async validateAndFilterSuggestions() {
+        const systemCode = $('#systemCode').val().trim();
+        const systemDiffCode = $('#systemDiffCode').val().trim();
+        const modelIdentCode = $('#modelIdentCode').val().trim();
+
+        // Проверяем заполненность обязательных полей
+        if (systemCode && systemDiffCode && modelIdentCode) {
+            try {
+                // Получаем все документы (с кешированием)
+                const docs = await this.getDMdocs(systemCode, systemDiffCode, modelIdentCode);
+                this.allSuggestions = docs || [];
+                
+                // Фильтруем по всем заполненным полям
+                this.filterSuggestions();
+                
+            } catch (error) {
+                console.error('Ошибка получения документов:', error);
+                this.hideSuggestions();
+            }
+        } else {
+            this.hideSuggestions();
+        }
+    }
+
+    /**
+     * Фильтрация предложений по всем заполненным полям
+     */
+    filterSuggestions() {
+        const currentValues = this.collectDmCodeFromFields();
+        
+        // Фильтруем документы по совпадению заполненных полей
+        this.filteredSuggestions = this.allSuggestions.filter(doc => {
+            return Object.keys(currentValues).every(key => {
+                const inputValue = currentValues[key];
+                const docValue = doc.dmCode[key];
+                
+                // Если поле не заполнено - пропускаем проверку
+                if (!inputValue) return true;
+                
+                // Сравниваем значения (case-insensitive)
+                return docValue && 
+                       docValue.toString().toLowerCase() === inputValue.toLowerCase();
             });
         });
-    }
 
-    showCustomValidity(input) {
-        const patterns = {
-            modelIdentCode: '5 знаков (буквы и цифры)',
-            systemDiffCode: '1 буква в верхнем регистре',
-            systemCode: '2 цифры',
-            subSystemCode: '1 цифра',
-            subSubSystemCode: '1 цифра',
-            assyCode: '2 цифры',
-            disassyCode: '2 цифры',
-            disassyCodeVariant: '1 буква в верхнем регистре',
-            infoCode: '3 знака (буквы и цифры)',
-            infoCodeVariant: '1 буква в верхнем регистре',
-            itemLocationCode: '1 буква в верхнем регистре'
-        };
-
-        const fieldName = input.id;
-        if (patterns[fieldName]) {
-            input.setCustomValidity(`Пожалуйста, введите корректное значение: ${patterns[fieldName]}`);
-        }
-    }
-
-    populateApplicabilityOptions() {
-        const $select = $('#dmRefApplicRefId');
-        $select.find('option:not(:first)').remove();
+        // Сбрасываем на первую страницу
+        this.currentPage = 1;
         
-        Object.values(this.model.applicMap).forEach(applic => {
-            $select.append($('<option>').val(applic.id).text(applic.displayValue));
-        });
-    }
-
-    open(rowIndex, dmRefIndex = null) {
-        this.currentRowIndex = rowIndex;
-        this.currentDmRefIndex = dmRefIndex;
-        this.isEditMode = dmRefIndex !== null;
-    
-        this.populateApplicabilityOptions();
-    
-        if (this.isEditMode) {
-            // Режим редактирования
-            const dmRef = this.model.tasks[rowIndex].dmRefs[dmRefIndex];
-            this.fillForm(dmRef);
-            this.$modal.find('.modal-title').text('Редактирование кода модуля данных');
-            
-            // ВАЖНО: Вызываем валидацию после заполнения формы
-            setTimeout(() => {
-                this.validateForm();
-            }, 100);
+        if (this.filteredSuggestions.length > 0) {
+            this.renderSuggestions();
+            $('#dmSuggestionsContainer').slideDown();
+        } else if (this.allSuggestions.length > 0) {
+            // Есть документы, но не подходят под фильтр
+            this.renderNoMatchMessage();
+            $('#dmSuggestionsContainer').slideDown();
         } else {
-            // Режим добавления
-            this.$form[0].reset();
-            this.$modal.find('.modal-title').text('Добавление кода модуля данных');
+            this.hideSuggestions();
+        }
+    }
+
+    /**
+     * Отрисовка предложений с пагинацией
+     */
+    renderSuggestions() {
+        const list = $('#dmSuggestionsList');
+        const totalCount = $('#totalDocsCount');
+        
+        list.empty();
+        totalCount.text(this.filteredSuggestions.length);
+
+        // Вычисляем диапазон для текущей страницы
+        const startIdx = (this.currentPage - 1) * this.itemsPerPage;
+        const endIdx = Math.min(startIdx + this.itemsPerPage, this.filteredSuggestions.length);
+        const pageItems = this.filteredSuggestions.slice(startIdx, endIdx);
+
+        // Отрисовываем элементы
+        pageItems.forEach(doc => {
+            const formattedCode = this.model.formatDmCodeDisplay(doc.dmCode);
+            const item = $(`
+                <div class="dm-suggestion-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="dm-suggestion-code">
+                                <code>${formattedCode}</code>
+                            </div>
+                            <div class="dm-suggestion-title">${doc.title || 'Без названия'}</div>
+                        </div>
+                        <div class="dm-suggestion-date">
+                            <small class="text-muted">${doc.issueDate || ''}</small>
+                        </div>
+                    </div>
+                </div>
+            `);
             
-            // В режиме добавления кнопка изначально неактивна
-            this.$saveBtn.prop('disabled', true);
+            item.data('dmcode', doc.dmCode);
+            list.append(item);
+        });
+
+        // Отрисовываем пагинацию
+        this.renderPagination();
+    }
+
+    /**
+     * Отрисовка пагинации
+     */
+    renderPagination() {
+        const pagination = $('#dmPagination');
+        pagination.empty();
+
+        const totalPages = Math.ceil(this.filteredSuggestions.length / this.itemsPerPage);
+        
+        if (totalPages <= 1) return;
+
+        const paginationHTML = $('<div class="btn-group btn-group-sm"></div>');
+
+        // Кнопка "Назад"
+        if (this.currentPage > 1) {
+            paginationHTML.append(`
+                <button class="btn btn-outline-secondary dm-page-btn" data-page="${this.currentPage - 1}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `);
+        }
+
+        // Номера страниц
+        for (let i = 1; i <= totalPages; i++) {
+            // Показываем только несколько страниц вокруг текущей
+            if (i === 1 || i === totalPages || (i >= this.currentPage - 1 && i <= this.currentPage + 1)) {
+                const isActive = i === this.currentPage ? 'active' : '';
+                paginationHTML.append(`
+                    <button class="btn btn-outline-secondary dm-page-btn ${isActive}" data-page="${i}">
+                        ${i}
+                    </button>
+                `);
+            } else if (i === this.currentPage - 2 || i === this.currentPage + 2) {
+                paginationHTML.append('<span class="btn btn-outline-secondary disabled">...</span>');
+            }
+        }
+
+        // Кнопка "Вперёд"
+        if (this.currentPage < totalPages) {
+            paginationHTML.append(`
+                <button class="btn btn-outline-secondary dm-page-btn" data-page="${this.currentPage + 1}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `);
+        }
+
+        pagination.append(paginationHTML);
+    }
+
+    /**
+     * Сообщение об отсутствии совпадений
+     */
+    renderNoMatchMessage() {
+        const list = $('#dmSuggestionsList');
+        const totalCount = $('#totalDocsCount');
+        
+        list.empty();
+        totalCount.text(this.allSuggestions.length);
+        
+        list.append(`
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i>
+                Найдено ${this.allSuggestions.length} документов, но ни один не соответствует заполненным полям.
+                Измените значения для уточнения поиска.
+            </div>
+        `);
+        
+        $('#dmPagination').empty();
+    }
+
+    /**
+     * Проверка существования документа по введенному коду
+     */
+    async checkDocumentExistence() {
+        const dmCodeString = $('#dmCodePreviewInput').val().trim();
+        const resultElement = $('#docCheckResult');
+        const checkBtn = $('#checkDocBtn');
+        
+        if (!dmCodeString) {
+            resultElement
+                .html('<i class="fas fa-exclamation-circle"></i> Введите DM Code для проверки')
+                .removeClass('text-success text-danger')
+                .addClass('text-warning');
+            return;
         }
     
-        this.$modal.modal('show');
-    }
-
-    fillForm(dmRef) {
-        const dmCode = dmRef.dmCode;
-        
-        $('#modelIdentCode').val(dmCode.modelIdentCode || '');
-        $('#systemDiffCode').val(dmCode.systemDiffCode || '');
-        $('#systemCode').val(dmCode.systemCode || '');
-        $('#subSystemCode').val(dmCode.subSystemCode || '');
-        $('#subSubSystemCode').val(dmCode.subSubSystemCode || '');
-        $('#assyCode').val(dmCode.assyCode || '');
-        $('#disassyCode').val(dmCode.disassyCode || '');
-        $('#disassyCodeVariant').val(dmCode.disassyCodeVariant || '');
-        $('#infoCode').val(dmCode.infoCode || '');
-        $('#infoCodeVariant').val(dmCode.infoCodeVariant || '');
-        $('#itemLocationCode').val(dmCode.itemLocationCode || '');
-        $('#dmRefApplicRefId').val(dmRef.applicRefId || '');
-    }
-
-    validateForm() {
-        const inputs = this.$form.find('input[required]');
-        let isValid = true;
+        // Показываем индикатор загрузки
+        checkBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Проверка...');
+        resultElement
+            .html('<i class="fas fa-spinner fa-pulse"></i> Проверяем наличие документа в системе...')
+            .removeClass('text-success text-danger text-warning')
+            .addClass('text-info');
     
-        // Сбрасываем все сообщения об ошибках
-        inputs.each((index, input) => {
-            input.setCustomValidity('');
-        });
-    
-        // Проверяем каждое поле
-        inputs.each((index, input) => {
-            // Проверяем на заполненность
-            if (!input.value.trim()) {
-                isValid = false;
-                return false; // break the loop
-            }
+        try {
+            const exists = await this.isDocExist(dmCodeString);
             
-            // Проверяем паттерн, если он задан
-            const pattern = input.getAttribute('pattern');
-            if (pattern) {
-                const regex = new RegExp(pattern);
-                if (!regex.test(input.value)) {
-                    isValid = false;
-                    this.showCustomValidity(input);
-                    return false; // break the loop
-                }
+            if (exists) {
+                resultElement
+                    .html('<i class="fas fa-check-circle"></i> <strong>Документ найден</strong> - можно сохранить')
+                    .removeClass('text-danger text-warning text-info')
+                    .addClass('text-success');
+            } else {
+                resultElement
+                    .html('<i class="fas fa-times-circle"></i> <strong>Документ не найден</strong> - сохранение невозможно')
+                    .removeClass('text-success text-warning text-info')
+                    .addClass('text-danger');
             }
-        });
-    
-        console.log('Form validation result:', isValid, 'for inputs:', inputs.map((i, el) => ({id: el.id, value: el.value, valid: el.checkValidity()})));
-        
-        this.$saveBtn.prop('disabled', !isValid);
-        return isValid;
+        } catch (error) {
+            console.error('Ошибка проверки документа:', error);
+            resultElement
+                .html('<i class="fas fa-exclamation-triangle"></i> Ошибка проверки: ' + error.message)
+                .removeClass('text-success text-warning text-info')
+                .addClass('text-danger');
+        } finally {
+            checkBtn.prop('disabled', false).html('<i class="fas fa-search"></i> Проверить');
+        }
     }
 
-    getFormData() {
+    /**
+     * Метод-заглушка для проверки существования документа
+     * TODO: Заменить на реальный API запрос
+     * 
+     * @param {string} dmCodeString - строковое представление DM Code
+     * @returns {Promise<boolean>} true если документ существует
+     */
+    async isDocExist(dmCodeString) {
+        console.log('Проверка существования документа:', dmCodeString);
+        
+        // Симуляция запроса к серверу
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // ЗАГЛУШКА: случайный результат
+        // TODO: Реализовать реальную проверку через API
+        const exists = Math.random() > 0.3; // 70% вероятность что документ существует
+        
+        console.log('Результат проверки:', exists);
+        return exists;
+    }
+
+    /**
+     * Метод-заглушка для получения существующих документов
+     * TODO: Заменить на реальный API запрос с кешированием
+     */
+    async getDMdocs(system, codes, idCodeModel) {
+        const cacheKey = `${idCodeModel}-${codes}-${system}`;
+        
+        if (this.suggestionsCache.has(cacheKey)) {
+            console.log('Загружено из кеша:', cacheKey);
+            return this.suggestionsCache.get(cacheKey);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // ЗАГЛУШКА: Генерируем тестовые данные (больше вариантов для демонстрации фильтрации)
+        const mockDocs = [];
+        const variants = ['A01', 'A02', 'B01', 'C01'];
+        const infoCodes = ['040', '520', '940', '012', '018'];
+        const locations = ['A', 'B', 'C', 'D'];
+
+        variants.forEach(variant => {
+            infoCodes.forEach(infoCode => {
+                locations.forEach(location => {
+                    mockDocs.push({
+                        dmCode: {
+                            modelIdentCode: idCodeModel,
+                            systemDiffCode: codes,
+                            systemCode: system,
+                            subSystemCode: '0',
+                            subSubSystemCode: '0',
+                            assyCode: '00',
+                            disassyCode: '01',
+                            disassyCodeVariant: variant,
+                            infoCode: infoCode,
+                            infoCodeVariant: 'A',
+                            itemLocationCode: location
+                        },
+                        title: `Документ ${variant}-${infoCode}-${location}`,
+                        issueDate: '2025-01-15'
+                    });
+                });
+            });
+        });
+
+        // Ограничиваем до 15 документов для демонстрации
+        const limitedDocs = mockDocs.slice(0, 15);
+        
+        this.suggestionsCache.set(cacheKey, limitedDocs);
+        console.log(`Найдено ${limitedDocs.length} документов для ${cacheKey}`);
+        
+        return limitedDocs;
+    }
+
+    /**
+     * Заполнение полей из выбранного DM Code
+     */
+    fillFieldsFromDmCode(dmCode) {
+        Object.keys(dmCode).forEach(key => {
+            $(`#${key}`).val(dmCode[key] || '');
+        });
+        this.updatePreview();
+        this.hideSuggestions();
+    }
+
+    /**
+     * Обновление превью сформированного кода
+     */
+    updatePreview() {
+        const dmCode = this.collectDmCodeFromFields();
+        const input = $('#dmCodePreviewInput');
+
+        if (this.isValidDmCode(dmCode)) {
+            const formatted = this.model.formatDmCodeDisplay(dmCode);
+            input.val(formatted).removeClass('text-muted').addClass('text-success');
+        } else {
+            input.val('Заполните обязательные поля (*)').removeClass('text-success').addClass('text-muted');
+        }
+    }
+
+    /**
+     * Сбор данных из полей
+     */
+    collectDmCodeFromFields() {
         return {
             modelIdentCode: $('#modelIdentCode').val().trim(),
             systemDiffCode: $('#systemDiffCode').val().trim(),
@@ -296,24 +567,245 @@ class DmCodeModal {
         };
     }
 
-    saveDmCode() {
-        if (!this.validateForm()) {
-            return;
-        }
-
-        const dmCodeData = this.getFormData();
-        const applicRefId = $('#dmRefApplicRefId').val() || null;
-
-        if (this.isEditMode) {
-            this.model.updateDmRef(this.currentRowIndex, this.currentDmRefIndex, dmCodeData, applicRefId);
-        } else {
-            this.model.addDmRef(this.currentRowIndex, dmCodeData, applicRefId);
-        }
-
-        this.$modal.modal('hide');
+    /**
+     * Проверка валидности DM Code
+     */
+    isValidDmCode(dmCode) {
+        return dmCode.modelIdentCode && 
+               dmCode.systemDiffCode && 
+               dmCode.systemCode;
     }
 
-    destroy() {
-        this.$modal.remove();
+    /**
+     * Скрытие предложений
+     */
+    hideSuggestions() {
+        $('#dmSuggestionsContainer').slideUp();
+        this.filteredSuggestions = [];
+        this.allSuggestions = [];
+    }
+
+    /**
+     * Открытие модального окна
+     */
+    open(rowIndex, dmRefIndex = null) {
+        this.currentRowIndex = rowIndex;
+        this.currentDmRefIndex = dmRefIndex;
+        this.isEditMode = dmRefIndex !== null;
+
+        if (this.isEditMode) {
+            this.loadExistingDmRef();
+        }
+
+        this.modal.modal('show');
+    }
+
+    /**
+     * Загрузка существующего DM Ref для редактирования
+     */
+    loadExistingDmRef() {
+        const tasks = this.model.getFilteredTasks();
+        const task = tasks[this.currentRowIndex];
+        
+        if (task && task.dmRefs && task.dmRefs[this.currentDmRefIndex]) {
+            const dmRef = task.dmRefs[this.currentDmRefIndex];
+            
+            if (dmRef.dmCode) {
+                this.fillFieldsFromDmCode(dmRef.dmCode);
+            }
+            
+            this.currentApplicId = dmRef.applicRefId || null;
+        }
+    }
+
+    /**
+     * Сохранение DM Code
+     */
+    /**
+ * Сохранение DM Code с проверкой существования документа
+ */
+async saveDmCode() {
+    const saveBtn = $('#saveDmCodeBtn');
+    let dmCodeString;
+    let dmCodeData;
+    
+    // Отключаем кнопку во время проверки
+    saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Проверка...');
+    
+    try {
+        // Если был ручной ввод - используем строку напрямую
+        if (this.isManuallyEdited) {
+            dmCodeString = $('#dmCodePreviewInput').val().trim();
+            if (!dmCodeString) {
+                alert('Введите DM Code');
+                return;
+            }
+            
+            // Проверяем существование документа
+            const exists = await this.isDocExist(dmCodeString);
+            
+            if (!exists) {
+                alert('Документ не найден в системе.\n\nНевозможно сохранить несуществующий документ.\nПроверьте правильность введенного кода или выберите документ из предложенных вариантов.');
+                return;
+            }
+            
+            // TODO: Когда будет готов парсер строки в dmCode объект
+            // dmCodeData = this.parseDmCodeString(dmCodeString);
+            // Пока используем временное решение - сохраняем как есть из полей
+            dmCodeData = this.collectDmCodeFromFields();
+            
+        } else {
+            // Режим структурированного ввода
+            dmCodeData = this.collectDmCodeFromFields();
+            
+            if (!this.isValidDmCode(dmCodeData)) {
+                alert('Заполните обязательные поля:\n- Идентификационный код модели\n- Отличительный код системы\n- Система');
+                return;
+            }
+            
+            // Формируем строку для проверки
+            dmCodeString = this.model.formatDmCodeDisplay(dmCodeData);
+            
+            // Проверяем существование документа
+            const exists = await this.isDocExist(dmCodeString);
+            
+            if (!exists) {
+                const userConfirm = confirm(
+                    'Документ не найден в системе.\n\n' +
+                    'DM Code: ' + dmCodeString + '\n\n' +
+                    'Возможно, вы ошиблись при вводе.\n' +
+                    'Хотите выбрать из существующих документов?'
+                );
+                
+                if (userConfirm) {
+                    // Оставляем модальное окно открытым для выбора
+                    return;
+                } else {
+                    // Пользователь настаивает на сохранении несуществующего документа
+                    return;
+                }
+            }
+        }
+
+        // Документ существует - сохраняем
+        if (this.isEditMode) {
+            this.model.updateDmRef(
+                this.currentRowIndex,
+                this.currentDmRefIndex,
+                dmCodeData,
+                this.currentApplicId
+            );
+        } else {
+            this.model.addDmRef(
+                this.currentRowIndex,
+                dmCodeData,
+                this.currentApplicId
+            );
+        }
+
+        // Показываем успешное сообщение
+        saveBtn.html('<i class="fas fa-check"></i> Сохранено');
+        setTimeout(() => {
+            this.modal.modal('hide');
+        }, 500);
+        
+    } catch (error) {
+        console.error('Ошибка сохранения DM Code:', error);
+        alert('Ошибка сохранения: ' + error.message);
+    } finally {
+        // Восстанавливаем кнопку
+        setTimeout(() => {
+            saveBtn.prop('disabled', false).html('Сохранить');
+        }, 1000);
+    }
+}
+
+/**
+ * Парсинг строки DM Code в объект
+ * TODO: Реализовать полноценный парсер
+ * 
+ * @param {string} dmCodeString - строка типа "LLM-A-21-0-0-00-01-A01-040-A-A"
+ * @returns {object} объект dmCode
+ */
+parseDmCodeString(dmCodeString) {
+    // Временная заглушка - парсим по разделителю "-"
+    const parts = dmCodeString.split('-');
+    
+    if (parts.length < 11) {
+        throw new Error('Неверный формат DM Code. Ожидается формат: MODEL-DIFF-SYS-SUB-SUBSUB-ASSY-DISASSY-VAR-INFO-INFOVAR-LOC');
+    }
+    
+    return {
+        modelIdentCode: parts[0] || '',
+        systemDiffCode: parts[1] || '',
+        systemCode: parts[2] || '',
+        subSystemCode: parts[3] || '0',
+        subSubSystemCode: parts[4] || '0',
+        assyCode: parts[5] || '00',
+        disassyCode: parts[6] || '01',
+        disassyCodeVariant: parts[7] || 'A01',
+        infoCode: parts[8] || '000',
+        infoCodeVariant: parts[9] || 'A',
+        itemLocationCode: parts[10] || 'A'
+    };
+}
+parseDmCodeString(dmCodeString) {
+    // Временная заглушка - парсим по разделителю "-"
+    const parts = dmCodeString.split('-');
+    
+    if (parts.length < 11) {
+        throw new Error('Неверный формат DM Code. Ожидается формат: MODEL-DIFF-SYS-SUB-SUBSUB-ASSY-DISASSY-VAR-INFO-INFOVAR-LOC');
+    }
+    
+    return {
+        modelIdentCode: parts[0] || '',
+        systemDiffCode: parts[1] || '',
+        systemCode: parts[2] || '',
+        subSystemCode: parts[3] || '0',
+        subSubSystemCode: parts[4] || '0',
+        assyCode: parts[5] || '00',
+        disassyCode: parts[6] || '01',
+        disassyCodeVariant: parts[7] || 'A01',
+        infoCode: parts[8] || '000',
+        infoCodeVariant: parts[9] || 'A',
+        itemLocationCode: parts[10] || 'A'
+    };
+}
+
+
+    /**
+     * Сброс модального окна
+     */
+    resetModal() {
+        this.modal.find('input').val('');
+        this.hideSuggestions();
+        this.updatePreview();
+        
+        $('#dmCodePreviewInput').prop('readonly', true);
+        $('#editPreviewBtn').html('<i class="fas fa-edit"></i>');
+        $('#checkDocBtn').hide();
+        $('#docCheckResult').text('');
+        
+        this.currentRowIndex = null;
+        this.currentDmRefIndex = null;
+        this.isEditMode = false;
+        this.currentApplicId = null;
+        this.isManuallyEdited = false;
+        this.currentPage = 1;
+    }
+
+    /**
+     * Закрытие модального окна
+     */
+    close() {
+        this.modal.modal('hide');
+    }
+
+    /**
+     * Очистка кеша предложений
+     */
+    clearCache() {
+        this.suggestionsCache.clear();
+        console.log('Кеш предложений документов очищен');
     }
 }

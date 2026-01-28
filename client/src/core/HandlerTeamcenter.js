@@ -43,6 +43,31 @@ class HandlerTeamcenter {
     return xmlText;
   }
 
+  async getDicts(uid) {
+    if (!uid) throw new Error('UID is required');
+  
+    const url = `http://10.16.6.3:9090/getdataset?uid=${encodeURIComponent(uid)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      ...this.defaultFetchOpts,
+      headers: {
+        'Accept': 'text/plain' // Получаем Base64
+      }
+    });
+  
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`GET dataset failed: ${res.status} ${res.statusText} ${text}`);
+    }
+  
+    const b64Text = await res.text();
+    const binary = atob(b64Text);
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const xmlText = new TextDecoder().decode(bytes); // UTF-8 декодировка
+    this.currentUid = uid;
+    return xmlText;
+  }
+
 
   async updateDataset(uid, xmlString) {
     if (!uid) throw new Error('UID is required');

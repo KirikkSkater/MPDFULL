@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <script src="jquery/external/jquery/jquery.js"></script>
   <script type="text/javascript" src="jquery/jquery-ui.js"></script>
+    <script type="text/javascript" src="lz-string.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="styles/style.css" />
   
@@ -15,7 +16,11 @@
   <link rel="stylesheet" href="bootstrap.min.css" />
   <link rel="stylesheet" href="styles_new/stylebase.css" />
   <link rel="stylesheet" href="styles/style_toolbar.css" />
+
+  <link rel="stylesheet" href="styles_new/stylebase.css" />
+  <link rel="stylesheet" href="styles/style_toolbar.css" />
   <link rel="stylesheet" href="styles_new/headers.css" />
+  <link rel="stylesheet" href="styles/style_zone.css" />
 
   <style>
 
@@ -77,6 +82,11 @@
       scrollbar-color: #b9c4eb #e9ecef !important; /* Firefox */
     }
 
+tbody td {
+      /* border: 1px solid #000; */
+      padding: 4px;
+    }
+
 #table-container::-webkit-scrollbar-thumb {
   background-color: #a4a4a4 !important;
   box-shadow: inset 2 2 2px rgba(0,0,0,0.3) !important;
@@ -86,7 +96,6 @@
   background-color: #e9ecef !important;
   box-shadow: inset 2 2 2px rgba(0,0,0,0.1) !important;
 }
-
 
     table td {
       border: 1px solid #000;
@@ -142,6 +151,17 @@
     .toolbar-top button {
       margin-right: 10px;
     }
+
+    .version-info {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            font-size: 12px;
+            color: #888;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
   </style>
 </head>
 
@@ -201,8 +221,11 @@
     <div id="table-container" class="table-responsive table-wrapper disable"></div>
   </div>
 
+
   <script src="src/core/XMLParser.js"></script>
   <script src="src/core/DndManager.js"></script>
+    <script src="src/data/ZoneDataManager.js"></script>
+  <script src="src/data/AccessPointDataManager.js"></script>
   <script src="src/core/SheduledController.js"></script>
   <script src="src/core/HandlerTeamcenter.js"></script>
   <script src="src/core/ScheduleTableModel.js"></script>
@@ -230,13 +253,27 @@
   <script src="src/core/DmCodeModal.js"></script>
   <script>
     (function () {
+
+      $(document).ready(async function() {
+        // Инициализируем оба менеджера данных параллельно
+        const [zonesLoaded, accessPointsLoaded] = await Promise.all([
+            window.zoneDataManager.init(),
+            window.accessPointDataManager.init()
+        ]);
+        
+        console.log('Зоны загружены:', zonesLoaded);
+        console.log('Точки доступа загружены:', accessPointsLoaded);
+        
+        // // Затем инициализируем приложение
+        // initScheduleTable();
+    });
+
       var parser = new XMLParser();
       var factory = new DModuleFactory();
       var infoCode = '0B2A';
 
       const $selectBtn = $('#select-dataset-btn');
       const $saveBtn = $('#edit-btn');
-
       var tcHandler = new HandlerTeamcenter('http://localhost:9090/');
       window.tcHandler = tcHandler;
 
@@ -255,7 +292,7 @@
 
       window.currentDatasetUid = null;
 
-       window.finishEditing = async function (shouldSave) {
+      window.finishEditing = async function (shouldSave) {
         if (!shouldSave) return;
         if (!window.currentDatasetUid) {
           alert('UID модуля данных не указан');
@@ -281,49 +318,30 @@
       };
 
       window.controller.addfinishEditing(window.finishEditing);
-      // window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
+    //  window.toolbar = new Toolbar(null, window.finishEditing, (flag) => window.controller.setEditMode(flag), () => "");
 
-      $('#select-dataset-btn').on('click', async function () {
-        const uid = prompt("Введите UID модуля данных:");
-        if (!uid) return;
-        try {
-          $(this).prop('disabled', true).text('Загрузка...');
-          const xmlString = await tcHandler.getDataset(uid);
-          window.currentDatasetUid = uid;
-          window.controller.init(xmlString);
-          // window.controller.bindToolbar();
-        } catch (err) {
-          console.error(err);
-          alert('Ошибка: ' + err.message);
-        } finally {
-          $(this).prop('disabled', false).text('Выбрать модуль данных');
-        }
-      });
+    
 
-      // Загрузка XML
-      $('#upload-btn').on('click', function () {
-        if (window.controller.handleSaveClick()){
-          window.controller.destroy();
-          // window.controller.setEditMode(false);
+    // Кнопка: выбрать модуль данных (prompt UID)
+
+    $('#upload-btn').on('click', function () {
         $('#upload-xml').click();
-        }
-      });
+    });
 
-      $('#upload-xml').on('change', function (e) {
+    $('#upload-xml').on('change', function (e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function (event) {
           const xmlString = event.target.result;
           window.controller.init(xmlString);
-          // window.controller.bindToolbar();
+          window.controller.bindToolbar();
           window.currentDatasetUid = null;
         };
         reader.readAsText(file);
       });
 
-      // Выгрузка XML
-      $('#download-btn').on('click', function () {
+    $('#download-btn').on('click', function () {
         const xmlToSave = window.controller.exportXML();
         if (!xmlToSave) {
           alert('Нет XML для выгрузки');
@@ -338,8 +356,38 @@
         URL.revokeObjectURL(url);
       });
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const uid = urlParams.get('uid');
+    $selectBtn.on('click', async function() {
+      const uid = prompt("Введите UID модуля данных (dataset uid):");
+        if (!uid) return;
+        try {
+        $selectBtn.prop('disabled', true).text('Загрузка...');
+          const xmlString = await tcHandler.getDataset(uid);
+          window.currentDatasetUid = uid;
+          window.controller.init(xmlString);
+          window.controller.bindToolbar();
+
+        // Включаем кнопку Сохранить
+        $saveBtn.prop('disabled', false);
+
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка: ' + err.message);
+        } finally {
+        $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
+        }
+      });
+
+    // Кнопка сохранить — повесим на click — она вызывает window.finishEditing через confirm в toolbar flow
+    // $saveBtn.on('click', function() {
+    //   // инициируем flow сохранения: показать confirm similar to edit toolbar
+    //   var doSave = confirm('Отправить изменения в Teamcenter?');
+    //   if (!doSave) return;
+    //   // напрямую вызовем finishEditing(true)
+    //   window.finishEditing(true);
+    // });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
     if(uid){
       try {
         tcHandler.getDataset(uid)
@@ -347,8 +395,7 @@
             // Инициализируем контроллер с полученным XML
             window.currentDatasetUid = uid;
           window.controller.init(xmlString);
-          window.currentDatasetUid = uid;
-          // window.controller.bindToolbar();
+          window.controller.bindToolbar();
         })
         .catch(error => {
             console.error('Ошибка при загрузке dataset:', error);
@@ -365,9 +412,20 @@
         $selectBtn.prop('disabled', false).text('Выбрать модуль данных');
       }
     }
+
+    // Если нужно — можно также позволить загрузку тестового xml при старте (удалите/закомментируйте если не нужно)
+    // fetch('xmls/DMC-RRJ-A-05-34-21-00A-0B2B-A_003-00_ru-RU.xml')
+    //   .then(res => res.text())
+    //   .then(xmlString => {
+    //       window.controller.init(xmlString);
+    //       window.controller.bindToolbar();
+    //       // не включаем save (т.к. нет uid)
+    //   }).catch(err => console.error('Ошибка при загрузке XML:', err));
     })();
   </script>
-
+<div class="version-info">v2.0.0.4</div>
 </body>
+
+
 
 </html>

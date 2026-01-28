@@ -260,11 +260,10 @@ class ScheduleView {
                 }
                 return;
             } else if (p.target === 'task') {
-                this.updateCell(p.rowIndex, 'taskDescr');
-              }
-              
-              return;
+              this.updateTaskDescrRemarks(p.rowIndex);  // ← НОВЫЙ МЕТОД
             }
+            return;
+          }
 
             if (meta && meta.type === 'remarks:added' && meta.payload) {
               const p = meta.payload;
@@ -288,7 +287,7 @@ class ScheduleView {
                 
                 return;
             } else if (p.targetType === 'task') {
-                this.updateCell(p.rowIndex, 'taskDescr');
+                this.updateTaskDescrRemarks(p.rowIndex, 'taskDescr');
               }
               
               // Фокусируемся на поле примечания через небольшую задержку
@@ -297,7 +296,7 @@ class ScheduleView {
               }, 100);
               
               return;
-            }
+          }
           } catch (err) {
             console.error('handle model change error', err);
           }
@@ -1761,6 +1760,41 @@ showTaskContextMenu(event, rowIndex, task) {
     return null;
   }
 
+
+  updateTaskDescrRemarks(rowIndex) {
+    const task = this.model.getFilteredTasks()[rowIndex];
+    if (!task) return;
+    
+    // Найти ячейку taskDescr в DOM
+    const table = $('table.schedule-table');
+    const row = table.find(`tbody tr[data-task-index="${rowIndex}"]`);
+    if (!row.length) return;
+    
+    const headers = this.model.getHeaders();
+    const descrColIndex = headers.findIndex(h => h.key === 'taskDescr');
+    if (descrColIndex === -1) return;
+    
+    const cell = row.find('td').eq(descrColIndex);
+    const container = cell.find('.task-description-container');
+    if (!container.length) return;
+    
+    // Удалить старый блок примечаний
+    container.find('.remarks-block').remove();
+    
+    // Добавить новый блок примечаний если есть
+    if (task.remarks !== undefined && task.remarks) {
+        const remarksBlock = this.renderRemarksField(task.remarks, rowIndex, 'task');
+        if (remarksBlock) {
+            // Вставить после editable-text, но перед supervisor-block
+            const supervisorBlock = container.find('.supervisor-block');
+            if (supervisorBlock.length) {
+                supervisorBlock.before(remarksBlock);
+            } else {
+                container.append(remarksBlock);
+            }
+        }
+    }
+}
   /**
    * Фокусируется на поле примечания
    */
