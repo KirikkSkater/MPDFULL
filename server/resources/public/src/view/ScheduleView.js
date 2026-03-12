@@ -16,6 +16,8 @@ class ScheduleView {
 
     this.activeViews = new Map(); // Для управления жизненным циклом
 
+    this.applicView = new ApplicView(model.applicManager, model);
+
     this.initViewRegistry();
 
     this.initPreviewListeners();
@@ -663,7 +665,7 @@ disablePreviewMode() {
                             this.editSectionTitle($(e.target), subtitleText);
                         }),
                     $('<button>', {
-                        class: 'btn btn-sm ml-2 btn-outline-primary btn-add btn-icon btn-square edit-mode-btn',
+                        class: 'btn btn-sm ml-2 btn-outline-primary btn-add btn-icon btn-square edit-mode edit-mode-btn',
                         'data-task-title': task.taskTitle
                     })
                     .text('+')
@@ -759,12 +761,11 @@ disablePreviewMode() {
         // Добавляем применимости для полей с allowApplic
         if (h.allowApplic && task.fieldApplicabilities && task.fieldApplicabilities[h.key]) {
           const applicId = task.fieldApplicabilities[h.key];
-          const applicData = this.model.applicMap[applicId];
-          if (applicData) {
-            const $applicTag = this.renderApplicTag(applicData, true, rowIndex,"field", h.key);
-            $cell.append($applicTag);
+          const applicBlock = this.applicView.renderApplicBlock(applicId, rowIndex, 'field', h.key);
+          if (applicBlock) {
+              cell.append(applicBlock);
           }
-        }
+      }
 
         // TODO: млжеь вынести в отдельный блок
         if (h.key === 'taskDescr') {
@@ -918,19 +919,15 @@ disablePreviewMode() {
 
       if (task.fieldApplicabilities && task.fieldApplicabilities['applicabilityTask']) {
         const applicId = task.fieldApplicabilities['applicabilityTask'];
-        const applicData = this.model.applicMap[applicId];
-        
-        if (applicData) {
-          const $applicRow = $('<tr>').addClass('task-applicability-row');
-          
-          const $applicCell = $('<td>').attr('colspan', headers.length);
-          const $applicTag = this.renderApplicTag(applicData, true, rowIndex, "field", 'applicabilityTask');
-          
-          $applicCell.append($applicTag);
-          $applicRow.append($applicCell);
-          $tbody.append($applicRow);
+        const applicBlock = this.applicView.renderApplicBlock(applicId, rowIndex, 'task', null);
+        if (applicBlock) {
+            const applicRow = $('<tr></tr>').addClass('task-applicability-row');
+            const applicCell = $('<td></td>').attr('colspan', headers.length);
+            applicCell.append(applicBlock);
+            applicRow.append(applicCell);
+            $tbody.append(applicRow);
         }
-      }
+    }
 
       $tbody.append($row);
     });
@@ -1064,57 +1061,12 @@ setEditable(editable) {
   // ---- applic
 
   renderApplicList(applicabilities) {
-    const $container = $('<div>').addClass('applic-container');
-    (applicabilities || []).forEach(applic => {
-      const displayValue = this.model.getApplicDisplayValue(applic.id);
-      if (displayValue) {
-        $container.append(this.renderApplicTag({ id: applic.id, displayValue }));
-      }
-    });
-    return $container;
-  }
+    return this.applicView.renderApplicList(applicabilities);
+}
 
   renderApplicTag(applic, withDelete = true, rowIndex = null, targetType = null, targetIndex = null) {
-
-    const applicId = typeof applic === 'string' ? applic : applic.id;
-    const displayValue = typeof applic === 'string'
-      ? this.model.getApplicDisplayValue(applic)
-      : applic.displayValue;
-
-    const $tag = $('<div>').addClass('applic-tag');
-    $tag.append($('<span>').addClass('applic-text').text(displayValue || applicId));
-
-    if (withDelete && rowIndex !== null && targetType !== null) {
-      $tag.append(
-        $('<button>')
-          .addClass('btn btn-xs btn-outline-danger btn-remove btn-icon btn-square delete-applic edit-mode-btn')
-          // .html('&times')
-          .attr('title', 'Удалить применимость')
-          .data('applic-id', applicId)
-          .on('click', () => {
-            if (targetType === 'field') {
-              this.model.removeApplicForField(rowIndex, targetIndex);
-            } else if (targetType === 'limit') {
-              this.model.removeApplicForLimit(rowIndex, targetIndex);
-            } else if (targetType === 'personnel') {
-              this.model.removeApplicForPersonnel(rowIndex, targetIndex);
-            } else if (targetType === 'task') {
-              this.model.removeApplicForTask(rowIndex);
-            } else if (targetType === 'remarks'){
-              this.model.removeApplicForRemarks(rowIndex);
-            }else if (targetType === 'workAreaGroup') {
-              this.model.removeApplicForWorkAreaGroup(rowIndex, targetIndex);
-            }else if (targetType === 'dmRef') {
-              this.model.removeApplicForDmRef(rowIndex, targetIndex);
-            } if (targetType === 'taskDuration'){
-              this.model.removeApplicForTaskDuration(rowIndex, targetIndex);
-            }
-          })
-      );
-    }
-
-    return $tag;
-  }
+    return this.applicView.renderApplicTag(applic, withDelete, rowIndex, targetType, targetIndex);
+}
 
   renderRqmtSourceCell($cell, task, rowIndex) {
     $cell.empty();
@@ -1175,8 +1127,12 @@ setEditable(editable) {
 
     const colIndex = this.model.getHeaders().indexOf(header);
     const $cell = $row.find('td').eq(colIndex);
-    $cell.empty().append(this.renderApplicList(task.applicabilities));
-  }
+    
+    // ✅ Используем ApplicView
+    $cell.empty().append(this.applicView.renderApplicList(task.fieldApplicabilities, rowIndex));
+    this.render();
+}
+
 
 
   updateZoneInRow(rowIndex, zoneIndex) {
@@ -1253,19 +1209,18 @@ renderDmRefBlock(dmRef, rowIndex, dmRefIndex) {
       .attr('data-task-index', rowIndex);
 
   // Применимость
+
   if (dmRef.applicRefId) {
-      const $applicTag = this.renderApplicTag(
-          {
-              id: dmRef.applicRefId,
-              displayValue: this.model.getApplicDisplayValue(dmRef.applicRefId)
-          },
-          true,
-          rowIndex,
-          "dmRef",
-          dmRefIndex
-      );
-      $block.append($applicTag);
-  }
+    const applicBlock = this.applicView.renderApplicBlock(
+        dmRef.applicRefId,
+        rowIndex,
+        'dmRef',
+        dmRefIndex
+    );
+    if (applicBlock) {
+      $block.append(applicBlock);
+    }
+}
 
   // Отформатированное отображение dmCode
   const formattedCode = this.model.formatDmCodeDisplay(dmRef.dmCode);

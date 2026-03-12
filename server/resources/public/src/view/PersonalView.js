@@ -49,17 +49,22 @@ class PersonnelView extends BaseCellView {
             .attr('data-personnel-index', index)
             .attr('data-task-index', this.rowIndex);
 
-        const $header = $('<div>').addClass('personnel-header');
+        const $header = $('<div>').addClass('work-area-group-header');
+        const $leftSection = $('<div>').addClass('d-flex align-items-center');
 
         // Применимость
         if (person.applicRefId) {
-            const applicData = this.model.applicMap[person.applicRefId];
-            if (applicData) {
-                const $applicTag = this.renderApplicTag(applicData, "personnel", index);
-                $header.append($applicTag);
-            }
-        }  
-        
+            const $applicTag = this.renderApplicTag(
+                {
+                    id: person.applicRefId,
+                    displayValue: this.model.getApplicDisplayValue(person.applicRefId)
+                },
+                "personnel",
+                index
+            );
+            $leftSection.append($applicTag);
+        }
+        $header.append($leftSection);
         // Кнопка удаления
         const $deleteButton = $('<button>')
             .addClass('btn btn-sm btn-outline-danger btn-remove edit-mode-btn')

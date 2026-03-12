@@ -56,7 +56,7 @@ class ZoneView extends BaseCellView {
         const self = this;
         
         const $groupBlock = $('<div>')
-            .addClass('work-area-group-block zone-group-block')
+            .addClass('work-area-group-block zone-group-block zone-group')
             .attr('data-group-index', groupIndex); // Сохраняем РЕАЛЬНЫЙ индекс
 
         // Заголовок группы
@@ -64,8 +64,8 @@ class ZoneView extends BaseCellView {
         
         const $leftSection = $('<div>').addClass('d-flex align-items-center');
         // Показываем реальный индекс для отладки
-        const $headerTitle = $('<strong>').html(`Зоны <small class="text-muted ml-1">[#${groupIndex}]</small>`);
-        $leftSection.append($headerTitle);
+        // const $headerTitle = $('<strong>').html(`Зоны <small class="text-muted ml-1">[#${groupIndex}]</small>`);
+        // $leftSection.append($headerTitle);
 
         // Применимость группы
         if (group.applicRefId) {
@@ -291,55 +291,55 @@ class ZoneView extends BaseCellView {
         }
     }
 
-    renderApplicTag(applic, targetType, groupIndex, zoneIndex = null) {
-        const self = this;
+    // renderApplicTag(applic, targetType, groupIndex, zoneIndex = null) {
+    //     const self = this;
         
-        if (!applic || !applic.id) {
-            return $('<span>');
-        }
+    //     if (!applic || !applic.id) {
+    //         return $('<span>');
+    //     }
 
-        const $tag = $('<span>')
-            .addClass('applic-tag badge badge-info ml-2')
-            .text(applic.displayValue || applic.id);
+    //     const $tag = $('<span>')
+    //         .addClass('applic-tag badge badge-info ml-2')
+    //         .text(applic.displayValue || applic.id);
 
-        if (this.editable) {
-            const $deleteBtn = $('<button>')
-                .addClass('btn btn-xs btn-link text-white p-0 ml-1')
-                .attr('title', 'Удалить применимость')
-                .attr('data-target-type', targetType)
-                .attr('data-group-index', groupIndex);
+    //     if (this.editable) {
+    //         const $deleteBtn = $('<button>')
+    //             .addClass('btn btn-xs btn-link text-white p-0 ml-1')
+    //             .attr('title', 'Удалить применимость')
+    //             .attr('data-target-type', targetType)
+    //             .attr('data-group-index', groupIndex);
             
-            if (zoneIndex !== null) {
-                $deleteBtn.attr('data-zone-index', zoneIndex);
-            }
+    //         if (zoneIndex !== null) {
+    //             $deleteBtn.attr('data-zone-index', zoneIndex);
+    //         }
 
-            $deleteBtn.on('click', function(e) {
-                e.stopPropagation();
+    //         $deleteBtn.on('click', function(e) {
+    //             e.stopPropagation();
                 
-                const targetType = $(this).attr('data-target-type');
-                const groupIdx = parseInt($(this).attr('data-group-index'));
-                const zoneIdxAttr = $(this).attr('data-zone-index');
+    //             const targetType = $(this).attr('data-target-type');
+    //             const groupIdx = parseInt($(this).attr('data-group-index'));
+    //             const zoneIdxAttr = $(this).attr('data-zone-index');
                 
-                console.log('[ZoneView] Удаление применимости:', { 
-                    rowIndex: self.rowIndex, 
-                    targetType, 
-                    realGroupIndex: groupIdx, 
-                    zoneIndex: zoneIdxAttr 
-                });
+    //             console.log('[ZoneView] Удаление применимости:', { 
+    //                 rowIndex: self.rowIndex, 
+    //                 targetType, 
+    //                 realGroupIndex: groupIdx, 
+    //                 zoneIndex: zoneIdxAttr 
+    //             });
                 
-                if (targetType === "zone" && zoneIdxAttr !== undefined) {
-                    const zoneIdx = parseInt(zoneIdxAttr);
-                    self.model.removeApplicForZone(self.rowIndex, groupIdx, zoneIdx);
-                } else if (targetType === "workAreaGroup") {
-                    self.model.removeApplicForWorkAreaGroup(self.rowIndex, groupIdx);
-                }
-            });
+    //             if (targetType === "zone" && zoneIdxAttr !== undefined) {
+    //                 const zoneIdx = parseInt(zoneIdxAttr);
+    //                 self.model.removeApplicForZone(self.rowIndex, groupIdx, zoneIdx);
+    //             } else if (targetType === "workAreaGroup") {
+    //                 self.model.removeApplicForWorkAreaGroup(self.rowIndex, groupIdx);
+    //             }
+    //         });
 
-            $tag.append($deleteBtn);
-        }
+    //         $tag.append($deleteBtn);
+    //     }
 
-        return $tag;
-    }
+    //     return $tag;
+    // }
 
     createAddGroupButton() {
         const self = this;

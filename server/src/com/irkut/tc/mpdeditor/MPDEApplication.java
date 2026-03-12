@@ -13,6 +13,8 @@ import com.teamcenter.rac.kernel.TCComponentItem;
 import com.teamcenter.rac.kernel.TCComponentItemRevision;
 import com.teamcenter.rac.kernel.TCComponentViewType;
 import com.teamcenter.rac.kernel.TCException;
+import com.teamcenter.rac.kernel.TCPreferenceService;
+import com.teamcenter.rac.kernel.TCSession;
 
 public class MPDEApplication extends AbstractTCApplication{
 
@@ -27,6 +29,7 @@ public class MPDEApplication extends AbstractTCApplication{
 	}
 	
 	public ArrayList<IUpdaterInfoCode> getUpdaters() {
+		
 		return updaters;
 	}
 

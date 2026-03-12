@@ -2,8 +2,8 @@
 .applic-item { border: 1px solid #ccc; padding: .5rem; margin-bottom: .5rem; cursor: move; }
 .applic-item strong { display: block; }
 
-.sidebar {
-  margin-top: 50px;
+.applic-sidebar {
+  /* margin-top: 50px; */
   width: 300px;
   min-width: 300px;
   background-color: #f8f9fa;
@@ -13,7 +13,7 @@
   transition: transform 0.3s ease;
 }
 
-.sidebar.hidden {
+.applic-sidebar.hidden {
   transform: translateX(-100%);
   position: absolute;
   left: 0;

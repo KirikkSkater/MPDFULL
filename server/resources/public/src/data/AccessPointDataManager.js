@@ -74,7 +74,7 @@ class AccessPointDataManager {
                 throw new Error('tcHandler не определен или метод getDataset недоступен');
             }
             
-            const xmlText = await tcHandler.getDataset("GRZl0qHWh326oC");
+            const xmlText = await tcHandler.getDataset("accessuid");
             
             if (!xmlText) {
                 throw new Error('Dataset "accessuid" вернул пустой результат');

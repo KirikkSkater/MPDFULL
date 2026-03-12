@@ -1,24 +1,29 @@
 
 class ScheduleTableModel {
     constructor(xmlDoc) {
-        this.$xml = $(xmlDoc);
-        this.taskNodes = [];
-        this.tasks = [];
-        this.title = '';
-        
-        // Извлекаем infoCode из XML
-        const dmCode = this.$xml.find('dmCode');
-        this.infoCode = dmCode.attr('infoCode') || '0B2';
-        
-        // Получаем конфигурацию на основе infoCode
-        this.handlerInfoCode = new HandlerInfoCode();
-        this.config = this.handlerInfoCode.getConfig(this.infoCode);
-        this.desiredHeaders = this.config.headers;
+    this.$xml = $(xmlDoc);
+    this.taskNodes = [];
+    this.tasks = [];
+    this.title = '';
+    
+    // Извлекаем infoCode из XML
+    const dmCode = this.$xml.find('dmCode');
+    this.infoCode = (dmCode.attr('infoCode') || "0B2") + (dmCode.attr('infoCodeVariant') || "A");
+    
+    // Получаем конфигурацию на основе infoCode
+    this.handlerInfoCode = new HandlerInfoCode();
+    this.config = this.handlerInfoCode.getConfig(this.infoCode);
+    this.desiredHeaders = this.config.headers;
+    
+    this.changeListeners = [];
+    
+    // ✅ Инициализация ApplicManager
+    this.applicManager = new ApplicManager();
+    this.applicMap = this.applicManager.applicMap
+    this.parseXML();
+    this.buildHeaders();
+}
 
-        this.changeListeners = [];
-        this.parseXML();
-        this.buildHeaders();
-    }
 
     
 
@@ -71,49 +76,7 @@ class ScheduleTableModel {
 
         const $taskDefs = $maintPlanning.find('taskDefinitionAlts > taskDefinition, > taskDefinition');
         
-        this.applicMap = {};
-        this.$xml.find('referencedApplicGroup > applic').each((i, el) => {
-            const $el = $(el);
-            const id = $el.attr('id');
-            const displayText = $el.find('displayText > simplePara').text().trim();
-            
-            // Получаем значения из assert'ов
-            const asserts = {};
-            $el.find('evaluate > assert').each((i, assert) => {
-                const $assert = $(assert);
-                const ident = $assert.attr('applicPropertyIdent');
-                const values = $assert.attr('applicPropertyValues') || '';
-                asserts[ident] = values;
-            });
-            
-            // Формируем текст применимости по приоритету
-            let applicText = '';
-            if (displayText) {
-                // Если есть displayText - используем его
-                applicText = displayText;
-            } else {
-                // Определяем приоритет: serialno > model > type
-                if (asserts.serialno) {
-                    applicText = `Серийный номер: ${asserts.serialno}`;
-                } else if (asserts.model) {
-                    applicText = `Модель: ${asserts.model}`;
-                } else if (asserts.type) {
-                    applicText = `Тип: ${asserts.type}`;
-                } else {
-                    // Если ничего нет - используем ID
-                    applicText = id;
-                }
-            }
-            
-            // Сохраняем полные данные для фильтрации
-            this.applicMap[id] = {
-                id,
-                displayText,
-                asserts,
-                displayValue: applicText
-            };
-        });
-
+        this.applicManager.init(this.$xml);
 
         $taskDefs.each((i, el) => {
             const $node = $(el);
@@ -725,82 +688,27 @@ class ScheduleTableModel {
         this.changeListeners.forEach(fn => fn(this.getXML()));
     }
 
-    removeApplicForField(idx, key) {
-        if (typeof idx !== 'number' || idx < 0 || idx >= this.taskNodes.length) return false;
-        const header = this.headers.find(h => h.key === key);
-        const $node = $(this.taskNodes[idx]);
-        if (!$node.length) return false;
-
-        // ✅ КОСТЫЛЬ: если это применимость всей задачи
-        if (key === 'applicabilityTask') {
-            // 1. Удаляем атрибут applicRefId из корневого элемента taskDefinition
-            $node.removeAttr('applicRefId');
-            
-            // 3. Чистим модель данных
-            if (this.tasks[idx].fieldApplicabilities) {
-                delete this.tasks[idx].fieldApplicabilities['applicabilityTask'];
-            }
-            this.tasks[idx].applicabilities = [];
-            
-            // 4. Эмитим событие
-            this._emitChange({
-                type: 'applicability:removed',
-                payload: { rowIndex: idx, key: 'applicabilityTask' }
-            });
-            
-            return true;
-        }
-        if (!header || !header.path || !$node.length) return false;
-
-        // Находим нужный узел
-        let cursor = $node;
-        for (let step of header.path) {
-            if (step.startsWith('@')) break;
-            cursor = cursor.find(step).first();
-            if (!cursor.length) return false;
-        }
-
-        // 1. Удаляем атрибут
-        cursor.removeAttr('applicRefId');
-
-        // 2. Если внутри есть <applicRef> – удаляем его
-        cursor.find('applicRef').remove();
-
-        // 3. Чистим модель
-        this.tasks[idx][key] = this.tasks[idx][key] || '';
-        this.tasks[idx].applicabilities = [];
-
-        // Эмитим событие
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex: idx, key }
-        });
-
-        return true;
-    }
-
 
     updateApplicForTask(idx, applicId) {
         if (typeof idx !== 'number' || idx < 0 || idx >= this.taskNodes.length) return false;
-        const $el = $(this.taskNodes[idx]);
-        if (!$el || !$el.length) return false;
-
-        // ставим атрибут на taskDefinition
-        if (applicId) $el.attr('applicRefId', applicId);
-        else $el.removeAttr('applicRefId');
-
-        // Обновляем модельные данные (у тебя в tasks хранится applicabilities)
-        this.tasks[idx] = this.tasks[idx] || {};
-        // сохраняем как массив с объектом (можно сохранить id — адаптируй под view)
-        // this.tasks[idx].fieldApplicabilities["applicabilityTask"] = applicId ? [ this.applicMap && this.applicMap[applicId] ? this.applicMap[applicId] : { id: applicId } ] : [];
-        this.tasks[idx].fieldApplicabilities["applicabilityTask"] = applicId;
-        // Эмитим granular change — view может обновить только соответствующую строку/ячейку
-        this._emitChange({
-            type: 'applicability:changed',
-            payload: { level: 'taskTempBroke', rowIndex: idx, applicId }
-        });
-
-        return true;
+        
+        const node = this.taskNodes[idx];
+        const success = this.applicManager.setApplicOnElement(node, applicId);
+        
+        if (success) {
+            this.tasks[idx] = this.tasks[idx] || {};
+            if (!this.tasks[idx].fieldApplicabilities) {
+                this.tasks[idx].fieldApplicabilities = {};
+            }
+            this.tasks[idx].fieldApplicabilities.applicabilityTask = applicId;
+            
+            this._emitChange({
+                type: 'applicability:changed',
+                payload: { level: 'task', rowIndex: idx, applicId }
+            });
+        }
+        
+        return success;
     }
 
     deleteTask(idx) {
@@ -819,36 +727,36 @@ class ScheduleTableModel {
 
     updateApplicForField(idx, key, applicId) {
         if (typeof idx !== 'number' || idx < 0 || idx >= this.taskNodes.length) return false;
+        
         const header = this.headers.find(h => h.key === key);
         const $node = $(this.taskNodes[idx]);
+        
         if (!header || !header.path || !$node.length) return false;
-
-        // найти соответствующий узел по пути и установить атрибут applicRefId
+    
         let cursor = $node;
         for (let step of header.path) {
             if (step.startsWith('@')) break;
             cursor = cursor.find(step).first();
             if (!cursor.length) return false;
         }
-
-        if (applicId) cursor.attr('applicRefId', applicId);
-        else cursor.removeAttr('applicRefId');
-
-        // обновляем модельную репрезентацию
-        this.tasks[idx] = this.tasks[idx] || {};
-        // записать id (упростим — ключ applicabilities)
-        this.tasks[idx].applicabilities = this.tasks[idx].applicabilities || [];
-        // (опционально) — пометим, что field был обновлён
-        // в реальной модели можно хранить per-field применимости
-
-        // Эмитим granular change с info по колонке
-        this._emitChange({
-            type: 'applicability:changed',
-            payload: { level: 'field', rowIndex: idx, field: key, applicId }
-        });
-
-        return true;
+    
+        const success = this.applicManager.setApplicOnElement(cursor[0], applicId);
+    
+        if (success) {
+            this.tasks[idx] = this.tasks[idx] || {};
+            if (!this.tasks[idx].fieldApplicabilities) {
+                this.tasks[idx].fieldApplicabilities = {};
+            }
+            this.tasks[idx].fieldApplicabilities[key] = applicId;
+    
+            this._emitChange({
+                type: 'applicability:changed',
+                payload: { level: 'field', rowIndex: idx, field: key, applicId }
+            });
         }
+    
+        return success;
+    }
 
     getTaskIndexByIdentifier(taskIdent) {
         return this.tasks.findIndex(task => task.taskIdent === taskIdent);
@@ -939,33 +847,30 @@ class ScheduleTableModel {
     }
 
     updateApplicForLimit(rowIndex, limitIndex, applicId) {
-        if (typeof rowIndex !== 'number' || rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        const $taskNode = $(this.taskNodes[rowIndex]);
-        const $limits = $taskNode.find('limit');
-        if (limitIndex < 0 || limitIndex >= $limits.length) {
-            console.warn('limit index out of range', limitIndex);
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
+        if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) {
             return false;
         }
     
-        const $lim = $($limits.get(limitIndex));
-        if (applicId) {
-            $lim.attr('applicRefId', applicId);
-        } else {
-            $lim.removeAttr('applicRefId');
+        const node = this.taskNodes[rowIndex];
+        const limits = node.getElementsByTagName('limit');
+        
+        if (limitIndex >= limits.length) return false;
+    
+        const success = this.applicManager.setApplicOnElement(limits[limitIndex], applicId);
+    
+        if (success) {
+            this.tasks[rowIndex].limits[limitIndex].applicRefId = applicId;
+    
+            this._emitChange({
+                type: 'applicability:changed',
+                payload: { rowIndex, limitIndex, applicId, target: 'limit' }
+            });
         }
     
-        // Обновляем модельную структуру
-        if (!this.tasks[rowIndex].limits) this.tasks[rowIndex].limits = [];
-        this.tasks[rowIndex].limits[limitIndex] = this.tasks[rowIndex].limits[limitIndex] || {};
-        this.tasks[rowIndex].limits[limitIndex].applicRefId = applicId || null;
-    
-        this._emitChange({ 
-            type: 'applicability:changed', 
-            payload: { rowIndex, limitIndex, applicId, field: 'limit' } 
-        });
-        return true;
+        return success;
     }
-
+    
 
     addLimitToTask(rowIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -1569,28 +1474,39 @@ getRqmtSources(rowIndex) {
     }
 
     updatePersonnelApplic(rowIndex, personnelIndex, applicId) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-        if (!this.tasks[rowIndex].personnel || personnelIndex < 0 || personnelIndex >= this.tasks[rowIndex].personnel.length) return;
-    
-        const node = this.taskNodes[rowIndex];
-        const preliminaryRqmts = node.getElementsByTagName('preliminaryRqmts')[0];
-        if (!preliminaryRqmts) return;
+        if (typeof rowIndex !== 'number' || rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
         
-        const reqPersons = preliminaryRqmts.getElementsByTagName('reqPersons');
+        const $taskNode = $(this.taskNodes[rowIndex]);
+        const $reqPersons = $taskNode.find('reqPersons');
         
-        if (personnelIndex >= reqPersons.length) return;
-        
-        const reqPerson = reqPersons[personnelIndex];
-        
-        if (applicId) {
-            reqPerson.setAttribute('applicRefId', applicId);
-        } else {
-            reqPerson.removeAttribute('applicRefId');
+        if (personnelIndex < 0 || personnelIndex >= $reqPersons.length) {
+            console.warn('personnel index out of range', personnelIndex);
+            return false;
         }
+    
+        const $reqPerson = $($reqPersons.get(personnelIndex));
         
-        this.tasks[rowIndex].personnel[personnelIndex].applicRefId = applicId;
-        this.changeListeners.forEach(fn => fn(this.getXML()));
+        // ✅ Устанавливаем атрибут прямо через jQuery (как в zones)
+        if (applicId) {
+            $reqPerson.attr('applicRefId', applicId);
+        } else {
+            $reqPerson.removeAttr('applicRefId');
+        }
+    
+        // Обновляем модельную структуру
+        if (!this.tasks[rowIndex].personnel) this.tasks[rowIndex].personnel = [];
+        this.tasks[rowIndex].personnel[personnelIndex] = this.tasks[rowIndex].personnel[personnelIndex] || {};
+        this.tasks[rowIndex].personnel[personnelIndex].applicRefId = applicId || null;
+    
+        this._emitChange({
+            type: 'applicability:changed',
+            payload: { rowIndex, personnelIndex, applicId, target: 'personnel' }
+        });
+        
+        return true;
     }
+    
+    
 
     removePersonnel(rowIndex, personnelIndex) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -1611,66 +1527,6 @@ getRqmtSources(rowIndex) {
         
         // Уведомляем об изменении
         this.changeListeners.forEach(fn => fn(this.getXML()));
-    }
-
-    removeApplicForLimit(rowIndex, limitIndex) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].limits || limitIndex < 0 || limitIndex >= this.tasks[rowIndex].limits.length) return false;
-
-        const node = this.taskNodes[rowIndex];
-        const limits = node.getElementsByTagName('limit');
-        
-        if (limitIndex < limits.length) {
-            const limit = limits[limitIndex];
-            limit.removeAttribute('applicRefId');
-            this.tasks[rowIndex].limits[limitIndex].applicRefId = null;
-        }
-
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex, limitIndex, target: 'limit' }
-        });
-
-        return true;
-        }
-
-    removeApplicForPersonnel(rowIndex, personnelIndex) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].personnel || personnelIndex < 0 || personnelIndex >= this.tasks[rowIndex].personnel.length) return false;
-
-        const node = this.taskNodes[rowIndex];
-        const reqPersons = node.getElementsByTagName('reqPersons');
-        
-        if (personnelIndex < reqPersons.length) {
-            const reqPerson = reqPersons[personnelIndex];
-            reqPerson.removeAttribute('applicRefId');
-            this.tasks[rowIndex].personnel[personnelIndex].applicRefId = null;
-        }
-
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex, personnelIndex, target: 'personnel' }
-        });
-
-        return true;
-        }
-
-    removeApplicForRemarks(rowIndex) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].remarks) return false;
-
-        const node = this.taskNodes[rowIndex];
-        const remarks = node.getElementsByTagName('remarks')[0];
-
-        remarks.removeAttribute('applicRefId');
-        this.tasks[rowIndex].fieldApplicabilities['remarks'] = null;
-
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex, target: 'remarks' }
-        });
-
-        return true;
     }
 
     /**
@@ -2001,32 +1857,30 @@ removeAccessPointFromGroup(rowIndex, groupIndex, accessIndex) {
 
 updateWorkAreaGroupApplic(rowIndex, groupIndex, applicId) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return false;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex >= groups.length) return false;
-
-    const group = groups[groupIndex];
-    if (applicId) {
-        group.setAttribute('applicRefId', applicId);
-    } else {
-        group.removeAttribute('applicRefId');
+    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) {
+        return false;
     }
 
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].applicRefId = applicId;
+    const node = this.taskNodes[rowIndex];
+    const $node = $(node);
+    
+    const groups = $node.find('productionMaintData workAreaLocationGroup');
+    if (groupIndex >= groups.length) return false;
 
-    this._emitChange({
-        type: 'applicability:changed',
-        payload: { rowIndex, groupIndex, applicId, field: 'workAreaGroup' }
-    });
+    const success = this.applicManager.setApplicOnElement(groups[groupIndex], applicId);
 
-    return true;
+    if (success) {
+        this.tasks[rowIndex].workAreaLocationGroups[groupIndex].applicRefId = applicId;
+
+        this._emitChange({
+            type: 'applicability:changed',
+            payload: { rowIndex, groupIndex, applicId, field: 'workAreaGroup' }
+        });
+    }
+
+    return success;
 }
+
 
 /**
  * Обновляет поле зоны
@@ -2092,53 +1946,6 @@ updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
         payload: { rowIndex, groupIndex, accessIndex, field, value }
     });
 }
-
-removeApplicForWorkAreaGroup(rowIndex, groupIndex) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-    if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-        groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return false;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
-    const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
-    if (groupIndex < groups.length) {
-        const group = groups[groupIndex];
-        group.removeAttribute('applicRefId');
-    }
-
-    // Обновляем модель
-    this.tasks[rowIndex].workAreaLocationGroups[groupIndex].applicRefId = null;
-
-    this._emitChange({
-        type: 'applicability:removed',
-        payload: { rowIndex, groupIndex, target: 'workAreaGroup' }
-    });
-
-    return true;
-}
-  //--------------------------
-    
-    removeApplicForZone(rowIndex, zoneIndex) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].zoneNumbers || zoneIndex < 0 || zoneIndex >= this.tasks[rowIndex].zoneNumbers.length) return false;
-    
-        const node = this.taskNodes[rowIndex];
-        const zones = node.getElementsByTagName('zoneRef');
-        
-        if (zoneIndex < zones.length) {
-            const zone = zones[zoneIndex];
-            zone.removeAttribute('applicRefId');
-            this.tasks[rowIndex].zoneNumbers[zoneIndex].applicRefId = null;
-        }
-    
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex, zoneIndex, target: 'zone' }
-        });
-    
-        return true;
-    }
 
     addDmRef(rowIndex, dmCodeData, applicRefId = null) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
@@ -2254,75 +2061,76 @@ removeApplicForWorkAreaGroup(rowIndex, groupIndex) {
         });
     }
     
-    updateApplicForDmRef(rowIndex, dmRefIndex, applicRefId) {
+    updateApplicForDmRef(rowIndex, dmRefIndex, applicId) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].dmRefs || dmRefIndex < 0 || 
-            dmRefIndex >= this.tasks[rowIndex].dmRefs.length) return false;
-    
-        const taskNode = this.taskNodes[rowIndex];
-        const dmRefs = taskNode.getElementsByTagName('dmRef');
-
-        this.tasks[rowIndex].dmRefs[dmRefIndex].applicRefId = applicRefId;
-        if (dmRefIndex < dmRefs.length) {
-            const dmRef = dmRefs[dmRefIndex];
-            if (applicRefId) {
-                dmRef.setAttribute('applicRefId', applicRefId);
-            } else {
-                dmRef.removeAttribute('applicRefId');
-            }
+        if (!this.tasks[rowIndex].dmRefs || dmRefIndex < 0 || dmRefIndex >= this.tasks[rowIndex].dmRefs.length) {
+            return false;
         }
     
-        this._emitChange({
-            type: 'applicability:changed',
-            payload: { rowIndex, dmRefIndex, target: 'dmRef' }
-        });
+        const node = this.taskNodes[rowIndex];
+        const $node = $(node);
+        
+        const dmRefs = $node.find('refs dmRef');
+        if (dmRefIndex >= dmRefs.length) return false;
     
-        return true;
+        const success = this.applicManager.setApplicOnElement(dmRefs[dmRefIndex], applicId);
+    
+        if (success) {
+            this.tasks[rowIndex].dmRefs[dmRefIndex].applicRefId = applicId;
+    
+            this._emitChange({
+                type: 'applicability:changed',
+                payload: { rowIndex, dmRefIndex, applicId, target: 'dmRef' }
+            });
+        }
+    
+        return success;
     }
 
-    removeApplicForDmRef(rowIndex, dmRefIndex) {
+    updateRemarksApplic(rowIndex, applicId) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-        if (!this.tasks[rowIndex].dmRefs || dmRefIndex < 0 || 
-            dmRefIndex >= this.tasks[rowIndex].dmRefs.length) return false;
     
-        const taskNode = this.taskNodes[rowIndex];
-        const dmRefs = taskNode.getElementsByTagName('dmRef');
+        const node = this.taskNodes[rowIndex];
+        const remarksElement = node.getElementsByTagName('remarks')[0];
         
-        if (dmRefIndex < dmRefs.length) {
-            const dmRef = dmRefs[dmRefIndex];
-            dmRef.removeAttribute('applicRefId');
-            this.tasks[rowIndex].dmRefs[dmRefIndex].applicRefId = null;
+        if (!remarksElement) return false;
+    
+        const success = this.applicManager.setApplicOnElement(remarksElement, applicId);
+    
+        if (success) {
+            if (!this.tasks[rowIndex].fieldApplicabilities) {
+                this.tasks[rowIndex].fieldApplicabilities = {};
+            }
+            this.tasks[rowIndex].fieldApplicabilities.remarks = applicId;
+    
+            this._emitChange({
+                type: 'applicability:changed',
+                payload: { rowIndex, applicId, target: 'remarks' }
+            });
         }
     
-        this._emitChange({
-            type: 'applicability:removed',
-            payload: { rowIndex, dmRefIndex, target: 'dmRef' }
-        });
-    
-        return true;
+        return success;
     }
     
     // Метод для форматирования отображения dmCode
     formatDmCodeDisplay(dmCode) {
-        if (!dmCode) return '';
-        
-        const parts = [
-            dmCode.modelIdentCode,
-            dmCode.systemDiffCode,
-            dmCode.systemCode,
-            dmCode.subSystemCode,
-            dmCode.subSubSystemCode,
-            dmCode.assyCode,
-            dmCode.disassyCode,
-            dmCode.disassyCodeVariant,
-            dmCode.infoCode,
-            dmCode.infoCodeVariant,
-            dmCode.itemLocationCode
-        ].filter(part => part && part !== '');
-        
-        return parts.join('-');
-    }
+    if (!dmCode) return '';
+    
+    // Создаем массив частей, предварительно объединив пары без разделителей
+    const parts = [
+        dmCode.modelIdentCode,
+        dmCode.systemDiffCode,
+        dmCode.systemCode,
+        `${dmCode.subSystemCode}${dmCode.subSubSystemCode}`,   // Без дефиса между subSystemCode и subSubSystemCode
+        dmCode.assyCode,
+        `${dmCode.disassyCode}${dmCode.disassyCodeVariant}`,    // Без дефиса между disassyCode и disassyCodeVariant
+        `${dmCode.infoCode}${dmCode.infoCodeVariant}`,          // Без дефиса между infoCode и infoCodeVariant
+        dmCode.itemLocationCode
+    ];
 
+    // Фильтруем пустые значения и объединяем оставшиеся части с дефисами
+    return parts.filter(part => part).join('-');
+}
 
     generateNewApplicId() {
         // Собираем все существующие числовые ID из applicMap
@@ -2442,6 +2250,38 @@ removeApplicForWorkAreaGroup(rowIndex, groupIndex) {
             type: 'applic:removed',
             payload: { applicId: applicId }
         });
+    }
+
+    removeApplicForField(idx, key) {
+        return this.updateApplicForField(idx, key, null);
+    }
+    
+    removeApplicForTask(rowIndex) {
+        return this.updateApplicForTask(rowIndex, null);
+    }
+    
+    removeApplicForLimit(rowIndex, limitIndex) {
+        return this.updateApplicForLimit(rowIndex, limitIndex, null);
+    }
+    
+    removeApplicForPersonnel(rowIndex, personnelIndex) {
+        return this.updatePersonnelApplic(rowIndex, personnelIndex, null);
+    }
+    
+    removeApplicForWorkAreaGroup(rowIndex, groupIndex) {
+        return this.updateWorkAreaGroupApplic(rowIndex, groupIndex, null);
+    }
+    
+    removeApplicForTaskDuration(rowIndex, durationIndex) {
+        return this.updateTaskDurationApplic(rowIndex, durationIndex, null);
+    }
+    
+    removeApplicForDmRef(rowIndex, dmRefIndex) {
+        return this.updateApplicForDmRef(rowIndex, dmRefIndex, null);
+    }
+    
+    removeApplicForRemarks(rowIndex) {
+        return this.updateRemarksApplic(rowIndex, null);
     }
 
     /**
@@ -2925,35 +2765,45 @@ removeTaskDuration(rowIndex, durationIndex) {
  */
 updateTaskDurationApplic(rowIndex, durationIndex, applicId) {
     if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-    if (!this.tasks[rowIndex].taskDurations || durationIndex < 0 || 
-        durationIndex >= this.tasks[rowIndex].taskDurations.length) return false;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const preliminaryRqmts = taskNode.getElementsByTagName('preliminaryRqmts')[0];
-    if (!preliminaryRqmts) return false;
-
-    // Находим productionMaintData с taskDuration по индексу
-    const taskDurationPmds = this.getTaskDurationProductionMaintData(preliminaryRqmts);
-    if (durationIndex < taskDurationPmds.length) {
-        const taskDurationPmd = taskDurationPmds[durationIndex];
-        
-        // Устанавливаем applicRefId на productionMaintData
-        if (applicId) {
-            taskDurationPmd.setAttribute('applicRefId', applicId);
-        } else {
-            taskDurationPmd.removeAttribute('applicRefId');
-        }
+    if (!this.tasks[rowIndex].taskDurations || durationIndex < 0 || durationIndex >= this.tasks[rowIndex].taskDurations.length) {
+        return false;
     }
 
-    this.tasks[rowIndex].taskDurations[durationIndex].applicRefId = applicId;
-
-    this._emitChange({
-        type: 'applicability:changed',
-        payload: { rowIndex, durationIndex, applicId, field: 'taskDuration' }
+    const node = this.taskNodes[rowIndex];
+    const $node = $(node);
+    
+    let durationCount = 0;
+    let targetPmd = null;
+    
+    $node.find('productionMaintData').each((i, pmd) => {
+        const $pmd = $(pmd);
+        if ($pmd.find('workAreaLocationGroup').length > 0) return;
+        
+        if ($pmd.find('taskDuration').length > 0) {
+            if (durationCount === durationIndex) {
+                targetPmd = pmd;
+                return false;
+            }
+            durationCount++;
+        }
     });
+    
+    if (!targetPmd) return false;
 
-    return true;
+    const success = this.applicManager.setApplicOnElement(targetPmd, applicId);
+
+    if (success) {
+        this.tasks[rowIndex].taskDurations[durationIndex].applicRefId = applicId;
+
+        this._emitChange({
+            type: 'applicability:changed',
+            payload: { rowIndex, durationIndex, applicId, target: 'taskDuration' }
+        });
+    }
+
+    return success;
 }
+
 
 getTaskDurationProductionMaintData(preliminaryRqmts) {
     const allPmds = preliminaryRqmts.getElementsByTagName('productionMaintData');
@@ -2970,35 +2820,6 @@ getTaskDurationProductionMaintData(preliminaryRqmts) {
     }
     
     return taskDurationPmds;
-}
-
-/**
- * Удаляет применимость с productionMaintData для taskDuration
- */
-removeApplicForTaskDuration(rowIndex, durationIndex) {
-    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
-    if (!this.tasks[rowIndex].taskDurations || durationIndex < 0 || 
-        durationIndex >= this.tasks[rowIndex].taskDurations.length) return false;
-
-    const taskNode = this.taskNodes[rowIndex];
-    const preliminaryRqmts = taskNode.getElementsByTagName('preliminaryRqmts')[0];
-    if (!preliminaryRqmts) return false;
-
-    // Находим productionMaintData с taskDuration по индексу
-    const taskDurationPmds = this.getTaskDurationProductionMaintData(preliminaryRqmts);
-    if (durationIndex < taskDurationPmds.length) {
-        const taskDurationPmd = taskDurationPmds[durationIndex];
-        taskDurationPmd.removeAttribute('applicRefId');
-    }
-
-    this.tasks[rowIndex].taskDurations[durationIndex].applicRefId = null;
-
-    this._emitChange({
-        type: 'applicability:removed',
-        payload: { rowIndex, durationIndex, target: 'taskDuration' }
-    });
-
-    return true;
 }
 
   
@@ -3363,6 +3184,172 @@ updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
         payload: { rowIndex, groupIndex, accessIndex, field, value }
     });
 }
+
+
+// === Методы работы с применимостями (делегирование к ApplicManager) ===
+
+generateNewApplicId() {
+    return this.applicManager.generateNewId();
+}
+
+addNewApplicability(applic) {
+    const newId = this.applicManager.addApplic(applic);
+    
+    // Обновляем XML
+    this.syncApplicToXML();
+    
+    this._emitChange({
+        type: 'applicability:added',
+        payload: { applicId: newId }
+    });
+    
+    return newId;
+}
+
+updateApplicability(id, data) {
+    const success = this.applicManager.updateApplic(id, data);
+    
+    if (success) {
+        this.syncApplicToXML();
+        this._emitChange({
+            type: 'applicability:updated',
+            payload: { applicId: id }
+        });
+    }
+    
+    return success;
+}
+
+removeApplicability(id) {
+    const success = this.applicManager.removeApplic(id);
+    
+    if (success) {
+        this.syncApplicToXML();
+        this._emitChange({
+            type: 'applicability:removed',
+            payload: { applicId: id }
+        });
+    }
+    
+    return success;
+}
+
+/**
+ * Синхронизация applicMap в XML
+ */
+syncApplicToXML() {
+    const applicType = this.applicManager.applicType;
+    
+    if (applicType === 'local') {
+        this.syncLocalApplicToXML();
+    } else if (applicType === 'cir') {
+        this.syncCirApplicToXML();
+    }
+}
+
+syncLocalApplicToXML() {
+    let container = this.$xml.find('referencedApplicGroup')[0];
+    
+    if (!container) {
+        container = this.applicManager.createApplicContainer(this.$xml, 'local');
+    }
+    
+    // ✅ Получаем namespace и XML документ
+    const namespace = container.namespaceURI;
+    const xmlDoc = container.ownerDocument;
+    
+    // Очищаем контейнер
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+    
+    // Добавляем все применимости
+    const applics = this.applicManager.getAllApplics();
+    applics.forEach(applic => {
+        if (applic.source !== 'local') return;
+        
+        // ✅ Создаем элементы через нативный DOM
+        const applicElement = xmlDoc.createElementNS(namespace, 'applic');
+        applicElement.setAttribute('id', applic.id);
+        
+        // displayText
+        if (applic.displayText) {
+            const displayText = xmlDoc.createElementNS(namespace, 'displayText');
+            const simplePara = xmlDoc.createElementNS(namespace, 'simplePara');
+            simplePara.textContent = applic.displayText;
+            displayText.appendChild(simplePara);
+            applicElement.appendChild(displayText);
+        }
+        
+        // evaluate > assert
+        if (applic.asserts && Object.keys(applic.asserts).length > 0) {
+            const evaluate = xmlDoc.createElementNS(namespace, 'evaluate');
+            
+            Object.entries(applic.asserts).forEach(([ident, values]) => {
+                const assert = xmlDoc.createElementNS(namespace, 'assert');
+                assert.setAttribute('applicPropertyIdent', ident);
+                assert.setAttribute('applicPropertyType', 'prodattr');
+                assert.setAttribute('applicPropertyValues', values);
+                evaluate.appendChild(assert);
+            });
+            
+            applicElement.appendChild(evaluate);
+        }
+        
+        container.appendChild(applicElement);
+    });
+}
+
+syncCirApplicToXML() {
+    let container = this.$xml.find('referencedApplicGroupRef')[0];
+    
+    if (!container) {
+        container = this.applicManager.createApplicContainer(this.$xml, 'cir');
+    }
+    
+    // ✅ Получаем namespace и XML документ
+    const namespace = container.namespaceURI;
+    const xmlDoc = container.ownerDocument;
+    
+    // Очищаем контейнер
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+    
+    // Добавляем все применимости
+    const applics = this.applicManager.getAllApplics();
+    applics.forEach(applic => {
+        if (applic.source !== 'cir') return;
+        
+        // ✅ Создаем элемент через нативный DOM
+        const applicRef = xmlDoc.createElementNS(namespace, 'applicRef');
+        applicRef.setAttribute('applicIdentValue', applic.applicIdentValue);
+        applicRef.setAttribute('id', applic.id);
+        
+        container.appendChild(applicRef);
+    });
+}
+
+
+/**
+ * Добавление применимости из CIR
+ */
+async addApplicFromCir(applicIdentValue) {
+    const newId = await this.applicManager.addApplicFromCir(applicIdentValue);
+    
+    // Обновляем XML
+    this.syncApplicToXML();
+    
+    this._emitChange({
+        type: 'applicability:added',
+        payload: { applicId: newId, source: 'cir' }
+    });
+    
+    return newId;
+}
+
+
+
 
     /* ZONE END */
 }

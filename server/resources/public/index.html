@@ -21,7 +21,8 @@
   <link rel="stylesheet" href="styles/style_toolbar.css" />
   <link rel="stylesheet" href="styles_new/headers.css" />
   <link rel="stylesheet" href="styles/style_zone.css" />
-
+  <link rel="stylesheet" href="styles/style_applic.css" />
+  <link rel="stylesheet" href="styles/style_cir.css" />
   <style>
 
     .body{
@@ -217,7 +218,7 @@ tbody td {
 </div>
 
   <div id="main-wrapper" style="display: flex; position: relative;">
-    <div id="applic-sidebar" class="sidebar hidden"></div>
+    <div id="applic-sidebar" class="applic-sidebar hidden"></div>
     <div id="table-container" class="table-responsive table-wrapper disable"></div>
   </div>
 
@@ -225,6 +226,7 @@ tbody td {
   <script src="src/core/XMLParser.js"></script>
   <script src="src/core/DndManager.js"></script>
     <script src="src/data/ZoneDataManager.js"></script>
+    <script src="src/data/ApplicManager.js"></script>
   <script src="src/data/AccessPointDataManager.js"></script>
   <script src="src/core/SheduledController.js"></script>
   <script src="src/core/HandlerTeamcenter.js"></script>
@@ -237,7 +239,7 @@ tbody td {
   <script src="src/core/HandlerInfoCode.js"></script>
 
   <script src="src/view/ViewRegistry.js"></script>
-  
+  <script src="src/view/ApplicView.js"></script>
   <script src="src/view/BaseCellView.js"></script>
   <script src="src/view/TaskDurationView.js"></script>
   <script src="src/view/LimitView.js"></script>
@@ -251,6 +253,7 @@ tbody td {
   <script src="bootstrap.bundle.min.js"></script>
   
   <script src="src/core/DmCodeModal.js"></script>
+  <script src="src/core/CirModal.js"></script>
   <script>
     (function () {
 
@@ -423,7 +426,7 @@ tbody td {
     //   }).catch(err => console.error('Ошибка при загрузке XML:', err));
     })();
   </script>
-<div class="version-info">v2.0.0.4</div>
+<div class="version-info">v2.0.0.6</div>
 </body>
 
 

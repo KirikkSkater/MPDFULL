@@ -1,0 +1,217 @@
+/* ========================================
+   APPLICABILITY STYLES
+   ======================================== */
+
+/* Applic Sidebar */
+/* #applic-sidebar {
+    position: fixed;
+    right: 0;
+    top: 60px;
+    width: 300px;
+    height: calc(100vh - 60px);
+    background: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    padding: 15px;
+    overflow-y: auto;
+    z-index: 100;
+} */
+
+.applic-list {
+    margin-bottom: 15px;
+}
+
+.applic-item {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.applic-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: #007bff;
+}
+
+.applic-item.dragging {
+    opacity: 0.5;
+}
+
+.applic-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.applic-title {
+    font-weight: 500;
+    flex: 1;
+}
+
+.applic-toggle {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+.applic-toggle:hover {
+    background: #f0f0f0;
+}
+
+/* Applic Editor */
+.applic-editor {
+    border-top: 1px solid #dee2e6;
+    margin-top: 8px;
+    padding-top: 8px;
+    background: #f8f9fa;
+}
+
+.assert-editor {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.assert-property {
+    width: 120px;
+    margin-right: 8px;
+}
+
+.assert-value {
+    flex: 1;
+    margin-right: 8px;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+/* Type Selection */
+.applic-type-selection {
+    text-align: center;
+    padding: 20px;
+}
+
+/* Applic Tag */
+.applic-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #f7fbff;
+    border: 1px solid #bae0ff;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 0.85rem;
+}
+
+.applic-text {
+    margin-right: 6px;
+}
+
+.applic-tag .delete-applic {
+    margin-left: 4px;
+    padding: 0 4px;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* Drag and Drop */
+.applic-drag-over {
+    background: #fff3cd !important;
+    border: 2px dashed #ffc107 !important;
+}
+
+tr.applic-drag-over td {
+    background: #fff3cd;
+}
+
+/* CIR Modal */
+#cirModal .cir-item {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#cirModal .cir-item:hover {
+    background-color: #f8f9fa;
+}
+
+#cirModal .cir-item:last-child {
+    border-bottom: none;
+}
+
+#cirModal .cir-search-input {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+#cirModal .cir-search-input:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+#cirModal .cir-list-container {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #fff;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#cirModal .cir-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+#cirModal .cir-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#cirModal .cir-page-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Button Header */
+.button-header {
+    margin-bottom: 15px;
+}
+
+.button-header button {
+    width: 100%;
+}
+
+/* Icon Buttons */
+.icon-btn {
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    color: #dc3545;
+    font-size: 1rem;
+}
+
+.icon-btn:hover {
+    color: #bd2130;
+}
+
+/* Task Applicability Row */
+.task-applicability-row {
+    background: #f0f8ff;
+}
+
+.task-applicability-row td {
+    padding: 2px !important;
+    border-top: 1px !important;
+}

@@ -1,0 +1,36 @@
+/* CIR Modal Styles */
+#cirModal .cir-item {
+    transition: background-color 0.2s ease;
+}
+
+#cirModal .cir-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+#cirModal .cir-search-input {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+#cirModal .cir-search-input:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+#cirModal .cir-list-container {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+#cirModal .cir-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#cirModal .cir-page-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+}

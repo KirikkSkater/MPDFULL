@@ -24,6 +24,7 @@ import com.teamcenter.rac.kernel.TCComponent;
 import com.teamcenter.rac.kernel.TCComponentItem;
 import com.teamcenter.rac.kernel.TCComponentItemRevision;
 import com.teamcenter.rac.kernel.TCException;
+import com.teamcenter.rac.kernel.TCPreferenceService;
 import com.teamcenter.rac.treetable.table.JamSwingCellEditorType;
 
 public class HandlerMPDObject extends AbstractHandler{
@@ -32,6 +33,8 @@ public class HandlerMPDObject extends AbstractHandler{
 	public Object execute(ExecutionEvent arg0) throws ExecutionException {
 		// TODO Auto-generated method stub
 
+		System.out.println("Scope string:" + TCPreferenceService.getScopeString(TCPreferenceService.TC_preference_site));
+		
 		
 		InterfaceAIFComponent aic = AIFUtility.getTargetComponent();
 		TCComponentItemRevision rev = null;

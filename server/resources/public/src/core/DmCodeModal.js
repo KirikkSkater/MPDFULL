@@ -47,7 +47,7 @@ class DmCodeModal {
                                     <div class="form-group col-md-6">
                                         <label for="modelIdentCode">Идентификационный код модели *</label>
                                         <input type="text" class="form-control dm-field required-field" 
-                                               id="modelIdentCode" maxlength="14" placeholder="Например: LLM">
+                                               id="modelIdentCode" maxlength="14" placeholder="Например: MC21">
                                     </div>
                                     <div class="form-group col-md-6">
                                         <label for="systemDiffCode">Отличительный код системы *</label>
@@ -466,7 +466,7 @@ class DmCodeModal {
         const exists = Math.random() > 0.3; // 70% вероятность что документ существует
         
         console.log('Результат проверки:', exists);
-        return exists;
+        return true;
     }
 
     /**

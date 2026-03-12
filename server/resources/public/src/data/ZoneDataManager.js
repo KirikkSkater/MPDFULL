@@ -50,7 +50,7 @@ class ZoneDataManager {
             console.log('[ZoneDataManager] Загрузка dataset "zoneuid"...');
             
             // ИСПРАВЛЕНО: await для получения результата Promise
-            const xmlText = await tcHandler.getDataset("1iXl0qHWh326oC");
+            const xmlText = await tcHandler.getDataset("zoneuid");
             
             if (!xmlText) {
                 throw new Error('Dataset "zoneuid" вернул пустой результат');

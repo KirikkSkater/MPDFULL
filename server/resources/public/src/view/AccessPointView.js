@@ -56,7 +56,7 @@ class AccessPointView extends BaseCellView {
         const self = this;
         
         const $groupBlock = $('<div>')
-            .addClass('work-area-group-block access-group-block')
+            .addClass('work-area-group-block access-group-block access-group')
             .attr('data-group-index', groupIndex); // Сохраняем РЕАЛЬНЫЙ индекс
 
         // Заголовок группы
@@ -291,56 +291,56 @@ class AccessPointView extends BaseCellView {
         }
     }
 
-    renderApplicTag(applic, targetType, groupIndex, accessIndex = null) {
-        const self = this;
+    // renderApplicTag(applic, targetType, groupIndex, accessIndex = null) {
+    //     const self = this;
         
-        if (!applic || !applic.id) {
-            return $('<span>');
-        }
+    //     if (!applic || !applic.id) {
+    //         return $('<span>');
+    //     }
 
-        const $tag = $('<span>')
-            .addClass('applic-tag badge badge-info ml-2')
-            .text(applic.displayValue || applic.id);
+    //     const $tag = $('<span>')
+    //         .addClass('applic-tag badge badge-info ml-2')
+    //         .text(applic.displayValue || applic.id);
 
-        if (this.editable) {
-            const $deleteBtn = $('<button>')
-                .addClass('btn btn-xs btn-link text-white p-0 ml-1')
-                .html('&times;')
-                .attr('title', 'Удалить применимость')
-                .attr('data-target-type', targetType)
-                .attr('data-group-index', groupIndex);
+    //     if (this.editable) {
+    //         const $deleteBtn = $('<button>')
+    //             .addClass('btn btn-xs btn-link text-white p-0 ml-1')
+    //             .html('&times;')
+    //             .attr('title', 'Удалить применимость')
+    //             .attr('data-target-type', targetType)
+    //             .attr('data-group-index', groupIndex);
             
-            if (accessIndex !== null) {
-                $deleteBtn.attr('data-access-index', accessIndex);
-            }
+    //         if (accessIndex !== null) {
+    //             $deleteBtn.attr('data-access-index', accessIndex);
+    //         }
 
-            $deleteBtn.on('click', function(e) {
-                e.stopPropagation();
+    //         $deleteBtn.on('click', function(e) {
+    //             e.stopPropagation();
                 
-                const targetType = $(this).attr('data-target-type');
-                const groupIdx = parseInt($(this).attr('data-group-index'));
-                const accessIdxAttr = $(this).attr('data-access-index');
+    //             const targetType = $(this).attr('data-target-type');
+    //             const groupIdx = parseInt($(this).attr('data-group-index'));
+    //             const accessIdxAttr = $(this).attr('data-access-index');
                 
-                console.log('[AccessPointView] Удаление применимости:', { 
-                    rowIndex: self.rowIndex, 
-                    targetType, 
-                    realGroupIndex: groupIdx, 
-                    accessIndex: accessIdxAttr 
-                });
+    //             console.log('[AccessPointView] Удаление применимости:', { 
+    //                 rowIndex: self.rowIndex, 
+    //                 targetType, 
+    //                 realGroupIndex: groupIdx, 
+    //                 accessIndex: accessIdxAttr 
+    //             });
                 
-                if (targetType === "accessPoint" && accessIdxAttr !== undefined) {
-                    const accessIdx = parseInt(accessIdxAttr);
-                    self.model.removeApplicForAccessPoint(self.rowIndex, groupIdx, accessIdx);
-                } else if (targetType === "workAreaGroup") {
-                    self.model.removeApplicForWorkAreaGroup(self.rowIndex, groupIdx);
-                }
-            });
+    //             if (targetType === "accessPoint" && accessIdxAttr !== undefined) {
+    //                 const accessIdx = parseInt(accessIdxAttr);
+    //                 self.model.removeApplicForAccessPoint(self.rowIndex, groupIdx, accessIdx);
+    //             } else if (targetType === "workAreaGroup") {
+    //                 self.model.removeApplicForWorkAreaGroup(self.rowIndex, groupIdx);
+    //             }
+    //         });
 
-            $tag.append($deleteBtn);
-        }
+    //         $tag.append($deleteBtn);
+    //     }
 
-        return $tag;
-    }
+    //     return $tag;
+    // }
 
     createAddGroupButton() {
         const self = this;

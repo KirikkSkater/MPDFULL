@@ -71,8 +71,8 @@ class TaskDurationView extends BaseCellView {
 
         // Кнопка удаления
         const $deleteButton = $('<button>')
-            .addClass('btn btn-sm btn-outline-danger remove-task-duration-btn edit-mode-btn')
-            .html('&times;')
+            .addClass('btn btn-sm btn-outline-danger remove-task-duration-btn btn-remove edit-mode-btn')
+            // .html('&times;')
             .attr('title', 'Удалить трудоёмкость')
             .on('click', () => {
                 this.model.removeTaskDuration(this.rowIndex, index);

@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: MPD Editor
 Bundle-SymbolicName: com.irkut.tc.mpdeditor;singleton:=true
-Bundle-Version: 2.0.0.4
+Bundle-Version: 2.0.0.6
 Bundle-Activator: com.irkut.tc.mpdeditor.Activator
 Bundle-Vendor: IRKUT
 Bundle-Localization: plugin
