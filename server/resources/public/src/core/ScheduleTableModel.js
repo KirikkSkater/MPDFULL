@@ -66,270 +66,258 @@ class ScheduleTableModel {
 
     parseXML() {
         const self = this;
-
         const $content = this.$xml.find('content');
         const $maintPlanning = $content.find('maintPlanning');
-
-        const $commonInfo = $maintPlanning.find('commonInfo');
         this.title = this.$xml.find('dmAddressItems > dmTitle > techName').text().trim();
-        // this.title = $commonInfo.find('title').text().trim();
-
-        const $taskDefs = $maintPlanning.find('taskDefinitionAlts > taskDefinition, > taskDefinition');
-        
         this.applicManager.init(this.$xml);
-
-        $taskDefs.each((i, el) => {
-            const $node = $(el);
-            const task = {};
-            task.fieldApplicabilities = {}; // Объект для хранения applicRefId по полям
-
-            self.desiredHeaders.forEach(col => {
-                if (col.key === 'limit' || col.key === "rqmtSource" || col.key == "personnel" || col.key == "zoneNumber" || col.key == "accessPoint") return;
-                
-
-                let cursor = $node;
-                let value = '';
-                let applicElement = null; // Элемент, от которого будем брать applicRefId
-
-                if (!col.path) {
-                // Для простых атрибутов берем значение и applicRefId из самого элемента
-                value = $node.attr(col.key) || '';
-                if (col.allowApplic) {
-                    const applicRefId = $node.attr('applicRefId');
-                    if (applicRefId) {
-                    task.fieldApplicabilities[col.key] = applicRefId;
-                    }
-                }
-                } else {
-                // Для сложных путей проходим по всем шагам
-                for (let step of col.path) {
-                    if (step.startsWith('@')) {
-                    // Дошли до атрибута - берем значение
-                    value = cursor.attr(step.slice(1)) || '';
-                    break;
-                    } else {
-                    // Переходим к следующему элементу
-                    cursor = cursor.find(step).first();
-                    if (!cursor.length) {
-                        cursor = null;
-                        break;
-                    }
-                    // Сохраняем элемент для возможного извлечения applicRefId
-                    applicElement = cursor;
-                    value = cursor.text().trim();
-                    }
-                }
-
-                // Извлекаем applicRefId для полей с allowApplic
-                if (col.allowApplic && applicElement) {
-                    const applicRefId = applicElement.attr('applicRefId');
-                    if (applicRefId) {
-                    task.fieldApplicabilities[col.key] = applicRefId;
-                    }
-                }
-                }
-
-                task[col.key] = value;
-            });
-
-            task.taskTitle = $node.find('task > taskTitle').text().trim();
-            task.changeType = $node.attr('changeType') || '';
-            const $remarks = $node.find('taskDefinition > remarks simplePara');
-            if ($remarks.length) {
-                task.remarks = $remarks.text().trim();
-            } else {
-                task.remarks = '';
+    
+        // Итерируем прямых потомков maintPlanning в порядке документа
+        $maintPlanning.children().each((i, el) => {
+            const name = el.nodeName; // nodeName сохраняет регистр в XML
+            if (name === 'taskDefinition') {
+                self._parseTaskNode($(el), false);
+            } else if (name === 'taskDefinitionAlts') {
+                $(el).children('taskDefinition').each((j, altEl) => {
+                    self._parseTaskNode($(altEl), true);
+                });
             }
-
-            task.supervisorLevelCode = undefined;
-
-            // Для applicability берем applicRefId из корневого элемента taskDefinition
-            if ($node.attr('applicRefId')) {
-                task.fieldApplicabilities['applicabilityTask'] = $node.attr('applicRefId');
-            }
-
-            task.workAreaLocationGroups = [];
-            $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
-                const $group = $(group);
-                const groupData = {
-                    applicRefId: $group.attr('applicRefId') || null,
-                    zones: [],
-                    accessPoints: []
-                };
-    
-                // Определяем тип группы по содержимому
-                const hasZones = $group.find('zoneRef').length > 0;
-                const hasAccessPoints = $group.find('accessPointRef').length > 0;
-                
-                // Если есть и то, и другое - считаем смешанной, но лучше разделить
-                if (hasZones && hasAccessPoints) {
-                    // Это смешанная группа, разделяем на две логические группы
-                    // Но в XML это одна группа, так что пока оставляем как есть
-                    console.warn('Mixed zone/access group found at row', i);
-                }
-                
-                // По умолчанию определяем по первому найденному элементу
-                groupData.type = hasZones ? 'zone' : 'access';
-    
-                // Парсим зоны
-                $group.find('zoneRef').each((j, zone) => {
-                    const $zone = $(zone);
-                    groupData.zones.push({
-                        zoneNumber: $zone.attr('zoneNumber') || ''
-                    });
-                });
-    
-                // Парсим точки доступа (без accessPointTypeValue)
-                $group.find('accessPointRef').each((j, access) => {
-                    const $access = $(access);
-                    groupData.accessPoints.push({
-                        accessPointNumber: $access.attr('accessPointNumber') || ''
-                        // Убрали accessPointTypeValue
-                    });
-                });
-    
-                // Парсим примечания (workArea внутри workLocation)
-                const $workLocation = $group.find('workLocation');
-                if ($workLocation.length) {
-                    const $workArea = $workLocation.find('workArea');
-                    if ($workArea.length) {
-                        if (!groupData.remarks) groupData.remarks = {};
-                        groupData.remarks.text = $workArea.text().trim();
-                    }
-                }
-    
-                task.workAreaLocationGroups.push(groupData);
-            });
-
-
-            // Блоки limit
-            task.limits = [];
-            $node.find('limit').each((i, lim) => {
-                const $lim = $(lim);
-                const block = {};
-                
-                // Основные атрибуты
-                block.applicRefId = $lim.attr('applicRefId') || null;
-                block.limitType = $lim.attr('limitTypeValue') || '';
-                block.limitCond = $lim.attr('limitCond') || '';
-                
-                // Интервалы (thresholdType="interval")
-                block.intervals = [];
-                $lim.find('threshold[thresholdType="interval"]').each((j, interval) => {
-                    const $interval = $(interval);
-                    block.intervals.push({
-                        value: $interval.find('thresholdValue').text().trim(),
-                        unit: $interval.attr('thresholdUnitOfMeasure') || ''
-                    });
-                });
-                
-                // Пороги (thresholdType="threshold")
-                block.thresholds = [];
-                $lim.find('threshold[thresholdType="threshold"]').each((j, threshold) => {
-                    const $threshold = $(threshold);
-                    block.thresholds.push({
-                        value: $threshold.find('thresholdValue').text().trim(),
-                        unit: $threshold.attr('thresholdUnitOfMeasure') || ''
-                    });
-                });
-
-                const $limitRemarks = $lim.find('remarks simplePara');
-                if ($limitRemarks.length) {
-                    if (!block.remarks) block.remarks = {};
-                    block.remarks.text = $limitRemarks.text().trim();
-                }
-                
-                task.limits.push(block);
-            });
-
-            task.rqmtSources = [];
-            $node.find('rqmtSource').each((i, src) => {
-                const $src = $(src);
-                const sourceData = {
-                    sourceOfRqmt: $src.attr('sourceOfRqmt') || '',
-                    sourceCriticality: []  // МАССИВ вместо строки!
-                };
-                
-                // Собираем ВСЕ sourceCriticality
-                $src.find('sourceType').each((j, st) => {
-                    const criticality = $(st).attr('sourceCriticality');
-                    if (criticality) {
-                        sourceData.sourceCriticality.push(criticality);
-                    }
-                });
-                task.rqmtSources.push(sourceData);
-            });
-
-            task.personnel = [];
-
-            const $preliminaryRqmts = $node.find('preliminaryRqmts');
-
-            task.dmRefs = [];
-                $node.find('refs dmRef').each((i, dmRefEl) => {
-                    const $dmRef = $(dmRefEl);
-                    const $dmCode = $dmRef.find('dmRefIdent dmCode');
-                    
-                    if ($dmCode.length) {
-                        const dmRefData = {
-                            applicRefId: $dmRef.attr('applicRefId') || null,
-                            dmCode: {
-                                modelIdentCode: $dmCode.attr('modelIdentCode') || '',
-                                systemDiffCode: $dmCode.attr('systemDiffCode') || '',
-                                systemCode: $dmCode.attr('systemCode') || '',
-                                subSystemCode: $dmCode.attr('subSystemCode') || '',
-                                subSubSystemCode: $dmCode.attr('subSubSystemCode') || '',
-                                assyCode: $dmCode.attr('assyCode') || '',
-                                disassyCode: $dmCode.attr('disassyCode') || '',
-                                disassyCodeVariant: $dmCode.attr('disassyCodeVariant') || '',
-                                infoCode: $dmCode.attr('infoCode') || '',
-                                infoCodeVariant: $dmCode.attr('infoCodeVariant') || '',
-                                itemLocationCode: $dmCode.attr('itemLocationCode') || ''
-                            }
-                        };
-                        task.dmRefs.push(dmRefData);
-                    }
-                });
-
-                task.taskDurations = [];
-    $node.find('productionMaintData').each((i, pmd) => {
-        const $pmd = $(pmd);
-        
-        // Исключаем productionMaintData, которые содержат workAreaLocationGroup
-        if ($pmd.find('workAreaLocationGroup').length > 0) return;
-        
-        // Парсим только productionMaintData с taskDuration
-        $pmd.find('taskDuration').each((j, dur) => {
-            const $dur = $(dur);
-            const durationBlock = {};
-            
-            durationBlock.procedureDuration = $dur.attr('procedureDuration') || '';
-            durationBlock.startupDuration = $dur.attr('startupDuration') || '';
-            durationBlock.applicRefId = $pmd.attr('applicRefId') || null;
-            
-            task.taskDurations.push(durationBlock);
         });
-    });
+    }
 
-// Обрабатываем все reqPersons внутри preliminaryRqmts
-            $preliminaryRqmts.find('reqPersons').each((j, reqEl) => {
-                const $req = $(reqEl);
-                const applicRefId = $req.attr('applicRefId') || null;
-                
-                // Обрабатываем все personnel внутри reqPersons
-                $req.find('personnel').each((k, persEl) => {
-                    const $pers = $(persEl);
-                    const personnel = {
-                        numRequired: $pers.attr('numRequired') || '',
-                        personCategoryCode: $pers.find('personCategory').attr('personCategoryCode') || '',
-                        applicRefId: applicRefId
-                    };
-                    task.personnel.push(personnel);
+    _parseTaskNode($node, isAlternative) {
+        const self = this;
+        const task = {};
+        task.fieldApplicabilities = {};
+        task.isAlternative = isAlternative; // ← флаг альтернативности
+    
+        self.desiredHeaders.forEach(col => {
+            if (col.key === 'limit' || col.key === "rqmtSource" || col.key == "personnel" || col.key == "zoneNumber" || col.key == "accessPoint") return;
+            
+
+            let cursor = $node;
+            let value = '';
+            let applicElement = null; // Элемент, от которого будем брать applicRefId
+
+            if (!col.path) {
+            // Для простых атрибутов берем значение и applicRefId из самого элемента
+            value = $node.attr(col.key) || '';
+            if (col.allowApplic) {
+                const applicRefId = $node.attr('applicRefId');
+                if (applicRefId) {
+                task.fieldApplicabilities[col.key] = applicRefId;
+                }
+            }
+            } else {
+            // Для сложных путей проходим по всем шагам
+            for (let step of col.path) {
+                if (step.startsWith('@')) {
+                // Дошли до атрибута - берем значение
+                value = cursor.attr(step.slice(1)) || '';
+                break;
+                } else {
+                // Переходим к следующему элементу
+                cursor = cursor.find(step).first();
+                if (!cursor.length) {
+                    cursor = null;
+                    break;
+                }
+                // Сохраняем элемент для возможного извлечения applicRefId
+                applicElement = cursor;
+                value = cursor.text().trim();
+                }
+            }
+
+            // Извлекаем applicRefId для полей с allowApplic
+            if (col.allowApplic && applicElement) {
+                const applicRefId = applicElement.attr('applicRefId');
+                if (applicRefId) {
+                task.fieldApplicabilities[col.key] = applicRefId;
+                }
+            }
+            }
+
+            task[col.key] = value;
+        });
+
+        task.taskTitle = $node.find('task > taskTitle').text().trim();
+        task.changeType = $node.attr('changeType') || '';
+        task.remarksItems = [];
+        $node.children('remarks').each((i, rem) => {
+            task.remarksItems.push($(rem).find('simplePara').text().trim());
+        });
+        task.remarks = task.remarksItems[0] || ''; // backward compat
+
+        task.supervisorLevelCode = undefined;
+
+        // Для applicability берем applicRefId из корневого элемента taskDefinition
+        if ($node.attr('applicRefId')) {
+            task.fieldApplicabilities['applicabilityTask'] = $node.attr('applicRefId');
+        }
+
+        task.workAreaLocationGroups = [];
+        $node.find('productionMaintData workAreaLocationGroup').each((i, group) => {
+            const $group = $(group);
+            const groupData = {
+                applicRefId: $group.attr('applicRefId') || null,
+                zones: [],
+                accessPoints: []
+            };
+
+            // Определяем тип группы по содержимому
+            const hasZones = $group.find('zoneRef').length > 0;
+            const hasAccessPoints = $group.find('accessPointRef').length > 0;
+            
+            // Если есть и то, и другое - считаем смешанной, но лучше разделить
+            if (hasZones && hasAccessPoints) {
+                // Это смешанная группа, разделяем на две логические группы
+                // Но в XML это одна группа, так что пока оставляем как есть
+                console.warn('Mixed zone/access group found at row', i);
+            }
+            
+            // По умолчанию определяем по первому найденному элементу
+            groupData.type = hasZones ? 'zone' : 'access';
+
+            // Парсим зоны
+            $group.find('zoneRef').each((j, zone) => {
+                const $zone = $(zone);
+                groupData.zones.push({
+                    zoneNumber: $zone.attr('zoneNumber') || ''
                 });
             });
 
-            self.taskNodes.push($node[0]);
-            self.tasks.push(task);
+            // Парсим точки доступа (без accessPointTypeValue)
+            $group.find('accessPointRef').each((j, access) => {
+                const $access = $(access);
+                groupData.accessPoints.push({
+                    accessPointNumber: $access.attr('accessPointNumber') || ''
+                    // Убрали accessPointTypeValue
+                });
             });
+
+            // Парсим примечания (workArea внутри workLocation)
+            const $workLocation = $group.find('workLocation');
+            if ($workLocation.length) {
+                const $workArea = $workLocation.find('workArea');
+                if ($workArea.length) {
+                    if (!groupData.remarks) groupData.remarks = {};
+                    groupData.remarks.text = $workArea.text().trim();
+                }
+            }
+
+            task.workAreaLocationGroups.push(groupData);
+        });
+
+
+        // Блоки limit
+        task.limits = [];
+        $node.find('limit').each((i, lim) => {
+            const $lim = $(lim);
+            const block = {};
+            
+            // Основные атрибуты
+            block.applicRefId = $lim.attr('applicRefId') || null;
+            block.limitType = $lim.attr('limitTypeValue') || '';
+            block.limitCond = $lim.attr('limitCond') || '';
+            
+            // Интервалы (thresholdType="interval")
+            block.intervals = [];
+            $lim.find('threshold[thresholdType="interval"]').each((j, interval) => {
+                const $interval = $(interval);
+                block.intervals.push({
+                    value: $interval.find('thresholdValue').text().trim(),
+                    unit: $interval.attr('thresholdUnitOfMeasure') || ''
+                });
+            });
+            
+            // Пороги (thresholdType="threshold")
+            block.thresholds = [];
+            $lim.find('threshold[thresholdType="threshold"]').each((j, threshold) => {
+                const $threshold = $(threshold);
+                block.thresholds.push({
+                    value: $threshold.find('thresholdValue').text().trim(),
+                    unit: $threshold.attr('thresholdUnitOfMeasure') || ''
+                });
+            });
+
+            const $limitRemarks = $lim.find('remarks simplePara');
+            if ($limitRemarks.length) {
+                if (!block.remarks) block.remarks = {};
+                block.remarks.text = $limitRemarks.text().trim();
+            }
+            
+            task.limits.push(block);
+        });
+
+        task.rqmtSources = [];
+        $node.find('rqmtSource').each((i, src) => {
+            const $src = $(src);
+            const sourceData = {
+                sourceOfRqmt: $src.attr('sourceOfRqmt') || '',
+                sourceCriticality: []  // МАССИВ вместо строки!
+            };
+            
+            // Собираем ВСЕ sourceCriticality
+            $src.find('sourceType').each((j, st) => {
+                const criticality = $(st).attr('sourceCriticality');
+                if (criticality) {
+                    sourceData.sourceCriticality.push(criticality);
+                }
+            });
+            task.rqmtSources.push(sourceData);
+        });
+
+        task.personnel = [];
+
+        const $preliminaryRqmts = $node.find('preliminaryRqmts');
+
+        task.dmRefs = [];
+            $node.find('refs dmRef').each((i, dmRefEl) => {
+                const $dmRef = $(dmRefEl);
+                const $dmCode = $dmRef.find('dmRefIdent dmCode');
+                
+                if ($dmCode.length) {
+                    const dmRefData = {
+                        applicRefId: $dmRef.attr('applicRefId') || null,
+                        dmCode: {
+                            modelIdentCode: $dmCode.attr('modelIdentCode') || '',
+                            systemDiffCode: $dmCode.attr('systemDiffCode') || '',
+                            systemCode: $dmCode.attr('systemCode') || '',
+                            subSystemCode: $dmCode.attr('subSystemCode') || '',
+                            subSubSystemCode: $dmCode.attr('subSubSystemCode') || '',
+                            assyCode: $dmCode.attr('assyCode') || '',
+                            disassyCode: $dmCode.attr('disassyCode') || '',
+                            disassyCodeVariant: $dmCode.attr('disassyCodeVariant') || '',
+                            infoCode: $dmCode.attr('infoCode') || '',
+                            infoCodeVariant: $dmCode.attr('infoCodeVariant') || '',
+                            itemLocationCode: $dmCode.attr('itemLocationCode') || ''
+                        }
+                    };
+                    task.dmRefs.push(dmRefData);
+                }
+            });
+
+            task.taskDurations = [];
+$node.find('productionMaintData').each((i, pmd) => {
+    const $pmd = $(pmd);
+    
+    // Исключаем productionMaintData, которые содержат workAreaLocationGroup
+    if ($pmd.find('workAreaLocationGroup').length > 0) return;
+    
+    // Парсим только productionMaintData с taskDuration
+    $pmd.find('taskDuration').each((j, dur) => {
+        const $dur = $(dur);
+        const durationBlock = {};
+        
+        durationBlock.procedureDuration = $dur.attr('procedureDuration') || '';
+        durationBlock.startupDuration = $dur.attr('startupDuration') || '';
+        durationBlock.applicRefId = $pmd.attr('applicRefId') || null;
+        
+        task.taskDurations.push(durationBlock);
+    });
+});
+
+    self.taskNodes.push($node[0]);
+    self.tasks.push(task);
     }
 
     buildHeaders() {
@@ -563,130 +551,36 @@ class ScheduleTableModel {
         this.changeListeners.forEach(fn => fn(this.getXML()));
     }
 
-    // addTaskToSection(taskCode, taskTitle) {
-    //     const $taskDef = $('<taskDefinition>', {
-    //         taskIdent: 'new-task-' + Date.now(),
-    //         taskCode: taskCode
-    //     });
-    //     const $task = $('<task>').append($('<taskTitle>').text(taskTitle));
-    //     $taskDef.append($task);
-    //     this.$xml.find('maintPlanning > taskDefinitionAlts').append($taskDef);
-    //     this.taskNodes.push($taskDef[0]);
-
-    //     const task = {};
-    //     this.headers.forEach(h => {
-    //         task[h.key] = (h.key === 'taskCode') ? taskCode : (h.key === 'taskTitle') ? taskTitle : '';
-    //     });
-    //     this.tasks.push(task);
-    //     this.changeListeners.forEach(fn => fn(this.getXML()));
-    // }
-
     addTaskToSection(taskTitle) {
-        const doc = this.$xml[0]; // сам XML-документ
+        const doc = this.$xml[0];
+        const taskDef = this._createMinimalTaskDef(doc, taskTitle);
+        const taskObj = this._createMinimalTaskObj(taskTitle);
+        taskObj.isAlternative = false;
     
-        // Создаём <taskDefinition>
-        const taskDef = doc.createElement("taskDefinition");
-        taskDef.setAttribute("taskIdent", "new-task-" + Date.now());
+        const maintPlanningEl = this.$xml.find('maintPlanning')[0];
+        if (!maintPlanningEl) { console.error('maintPlanning не найден'); return; }
     
-        // 1. task (первый элемент согласно порядку)
-        const task = doc.createElement("task");
-        const taskTitleNode = doc.createElement("taskTitle");
-        taskTitleNode.textContent = taskTitle;
-        task.appendChild(taskTitleNode);
-        taskDef.appendChild(task);
-    
-        // 2. preliminaryRqmts (второй элемент согласно порядку)
-        const preliminaryRqmts = doc.createElement("preliminaryRqmts");
-    
-        const reqCondGroup = doc.createElement("reqCondGroup");
-        const reqCondNoRef = doc.createElement("reqCondNoRef");
-        reqCondNoRef.appendChild(doc.createElement("reqCond"));
-        reqCondGroup.appendChild(reqCondNoRef);
-        preliminaryRqmts.appendChild(reqCondGroup);
-        
-        const reqSupportEquips = doc.createElement("reqSupportEquips");
-        reqSupportEquips.appendChild(doc.createElement("noSupportEquips"));
-        preliminaryRqmts.appendChild(reqSupportEquips);
-        
-        const reqSupplies = doc.createElement("reqSupplies");
-        reqSupplies.appendChild(doc.createElement("noSupplies"));
-        preliminaryRqmts.appendChild(reqSupplies);
-        
-        const reqSpares = doc.createElement("reqSpares");
-        reqSpares.appendChild(doc.createElement("noSpares"));
-        preliminaryRqmts.appendChild(reqSpares);
-        
-        const reqSafety = doc.createElement("reqSafety");
-        reqSafety.appendChild(doc.createElement("noSafety"));
-        preliminaryRqmts.appendChild(reqSafety);
-        
-        taskDef.appendChild(preliminaryRqmts);
-    
-        // Найти индекс вставки по taskTitle
-        let insertIndex = this.taskNodes.findIndex(n => {
-            const title = n.querySelector("taskTitle");
-            return title && title.textContent === taskTitle;
-        });
-    
-        const taskObj = {};
-        taskObj.fieldApplicabilities = {};
-        taskObj.taskTitle = taskTitle;
-        taskObj.personnel = [];
-        // taskObj.supervisorLevelCode = '';
-        taskObj.remarks = "";
-        taskObj.rqmtSources = []; // Инициализируем пустой массив
-
-        
-        // Заполняем остальные поля
-        this.headers.forEach(h => {
-            if (h.key === "taskTitle") {
-                taskObj[h.key] = taskTitle;
-            } else {
-                taskObj[h.key] = "";
-            }
-        });
-    
-        // ИСПРАВЛЕНИЕ: Находим контейнер для задач
-        let container = this.$xml.find("maintPlanning > taskDefinitionAlts")[0];
-        
-        // Если контейнер не найден, создаем его
-        if (!container) {
-            const maintPlanning = this.$xml.find("maintPlanning")[0];
-            if (maintPlanning) {
-                container = doc.createElement("taskDefinitionAlts");
-                maintPlanning.appendChild(container);
-            } else {
-                console.error("Не найден элемент maintPlanning");
-                return;
-            }
+        // Найти последнюю задачу с таким taskTitle
+        let lastIndex = -1;
+        for (let i = 0; i < this.taskNodes.length; i++) {
+            const t = this.taskNodes[i].querySelector('taskTitle');
+            if (t && t.textContent.trim() === taskTitle) lastIndex = i;
         }
     
-        if (insertIndex !== -1) {
-            // Вставка после последнего с таким taskTitle
-            let lastIndex = insertIndex;
-            while (
-                lastIndex + 1 < this.taskNodes.length &&
-                this.taskNodes[lastIndex + 1].querySelector("taskTitle") &&
-                this.taskNodes[lastIndex + 1].querySelector("taskTitle").textContent === taskTitle
-            ) {
-                lastIndex++;
-            }
-    
-            const refNode = this.taskNodes[lastIndex];
-            refNode.parentNode.insertBefore(taskDef, refNode.nextSibling);
-    
+        if (lastIndex !== -1) {
+            const anchor = this._getMaintPlanningAnchor(this.taskNodes[lastIndex]);
+            anchor.parentNode.insertBefore(taskDef, anchor.nextSibling);
             this.taskNodes.splice(lastIndex + 1, 0, taskDef);
             this.tasks.splice(lastIndex + 1, 0, taskObj);
         } else {
-            // В конец taskDefinitionAlts
-            container.appendChild(taskDef);
+            maintPlanningEl.appendChild(taskDef);
             this.taskNodes.push(taskDef);
             this.tasks.push(taskObj);
         }
     
-        // Оповещение слушателей
         this.changeListeners.forEach(fn => fn(this.getXML()));
     }
+    
 
 
     updateApplicForTask(idx, applicId) {
@@ -2483,27 +2377,43 @@ updateAccessPointField(rowIndex, groupIndex, accessIndex, field, value) {
 
     addNewSection() {
         try {
-            const defaultTitle = "Новый раздел";
-            
-            // Создаем задачу с новым разделом
-            this.addTaskToSection(defaultTitle);
-            
-            // Находим индекс только что созданной задачи
-            const newTaskIndex = this.tasks.findIndex(task => task.taskTitle === defaultTitle);
-            
-            if (newTaskIndex !== -1) {
-                this._emitChange({
-                    type: 'section:added',
-                    payload: { sectionTitle: defaultTitle, taskIndex: newTaskIndex }
-                });
+            const defaultTitle = 'Новый раздел';
+            const doc = this.$xml[0];
+            const taskDef = this._createMinimalTaskDef(doc, defaultTitle);
+            const taskObj = this._createMinimalTaskObj(defaultTitle);
+            taskObj.isAlternative = false;
+    
+            const maintPlanningEl = this.$xml.find('maintPlanning')[0];
+            if (!maintPlanningEl) return null;
+    
+            // Ищем первый taskDefinition или taskDefinitionAlts
+            let firstAnchor = null;
+            for (const child of Array.from(maintPlanningEl.childNodes)) {
+                if (child.nodeType !== 1) continue;
+                if (child.nodeName === 'taskDefinition' || child.nodeName === 'taskDefinitionAlts') {
+                    firstAnchor = child;
+                    break;
+                }
             }
-            
+    
+            if (firstAnchor) {
+                maintPlanningEl.insertBefore(taskDef, firstAnchor);
+            } else {
+                maintPlanningEl.appendChild(taskDef);
+            }
+    
+            this.taskNodes.unshift(taskDef);
+            this.tasks.unshift(taskObj);
+    
+            this._emitChange({ type: 'section:added', payload: { sectionTitle: defaultTitle, taskIndex: 0 } });
+            this.changeListeners.forEach(fn => fn(this.getXML()));
             return defaultTitle;
-        } catch (error) {
-            console.error("Ошибка при создании нового раздела:", error);
+        } catch (e) {
+            console.error('Ошибка при создании нового раздела:', e);
             return null;
         }
     }
+    
 
     /**
  * Изменяет раздел для конкретной задачи
@@ -3206,6 +3116,61 @@ addNewApplicability(applic) {
     return newId;
 }
 
+addTaskRemarksItem(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const node = this.taskNodes[rowIndex];
+    const doc  = node.ownerDocument;
+
+    // Создаём отдельный блок <remarks><simplePara/></remarks>
+    const remarksEl  = doc.createElement('remarks');
+    const simplePara = doc.createElement('simplePara');
+    remarksEl.appendChild(simplePara);
+    this.insertElementInCorrectOrder(node, remarksEl, 'remarks');
+
+    if (!this.tasks[rowIndex].remarksItems) this.tasks[rowIndex].remarksItems = [];
+    const newIndex = this.tasks[rowIndex].remarksItems.length;
+    this.tasks[rowIndex].remarksItems.push('');
+
+    // ↓ БЫЛО: itemIndex — не определена, СТАЛО: newIndex
+    this._emitChange({ type: 'remarksItem:added', payload: { rowIndex, itemIndex: newIndex } });
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+updateTaskRemarksItem(rowIndex, itemIndex, text) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const node = this.taskNodes[rowIndex];
+
+    // Берём <remarks> блок по индексу, а не первый попавшийся
+    const $remarksEl = $(node).children('remarks').eq(itemIndex);
+    if (!$remarksEl.length) return;
+
+    $remarksEl.find('simplePara').text(text);
+
+    if (!this.tasks[rowIndex].remarksItems) this.tasks[rowIndex].remarksItems = [];
+    this.tasks[rowIndex].remarksItems[itemIndex] = text;
+    this.tasks[rowIndex].remarks = this.tasks[rowIndex].remarksItems[0] || '';
+
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+
+removeTaskRemarksItem(rowIndex, itemIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const node = this.taskNodes[rowIndex];
+
+    // Удаляем весь <remarks> блок по индексу
+    $(node).children('remarks').eq(itemIndex).remove();
+
+    if (!this.tasks[rowIndex].remarksItems) return;
+    this.tasks[rowIndex].remarksItems.splice(itemIndex, 1);
+    this.tasks[rowIndex].remarks = this.tasks[rowIndex].remarksItems[0] || '';
+
+    this._emitChange({ type: 'remarksItem:removed', payload: { rowIndex, itemIndex } });
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+
+
 updateApplicability(id, data) {
     const success = this.applicManager.updateApplic(id, data);
     
@@ -3348,7 +3313,258 @@ async addApplicFromCir(applicIdentValue) {
     return newId;
 }
 
+// ─── Контекстное меню: задача ниже ────────────────────────────────────
+addTaskBelow(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const doc = this.$xml[0];
+    const taskTitle = this.tasks[rowIndex].taskTitle;
+    const taskDef = this._createMinimalTaskDef(doc, taskTitle);
+    const taskObj = this._createMinimalTaskObj(taskTitle);
+    taskObj.isAlternative = false;
 
+    const lastIdx = this._getGroupLastIndex(rowIndex);
+    const anchor = this._getMaintPlanningAnchor(this.taskNodes[lastIdx]);
+    anchor.parentNode.insertBefore(taskDef, anchor.nextSibling);
+    this.taskNodes.splice(lastIdx + 1, 0, taskDef);
+    this.tasks.splice(lastIdx + 1, 0, taskObj);
+
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Контекстное меню: задача выше ────────────────────────────────────
+addTaskAbove(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const doc = this.$xml[0];
+    const taskTitle = this.tasks[rowIndex].taskTitle;
+    const taskDef = this._createMinimalTaskDef(doc, taskTitle);
+    const taskObj = this._createMinimalTaskObj(taskTitle);
+    taskObj.isAlternative = false;
+
+    const firstIdx = this._getGroupFirstIndex(rowIndex);
+    const anchor = this._getMaintPlanningAnchor(this.taskNodes[firstIdx]);
+    anchor.parentNode.insertBefore(taskDef, anchor);
+    this.taskNodes.splice(firstIdx, 0, taskDef);
+    this.tasks.splice(firstIdx, 0, taskObj);
+
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Контекстное меню: создать раздел после текущей группы ────────────
+addSectionAfterCurrentGroup(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const doc = this.$xml[0];
+    const taskDef = this._createMinimalTaskDef(doc, 'Новый раздел');
+    const taskObj = this._createMinimalTaskObj('Новый раздел');
+    taskObj.isAlternative = false;
+
+    // Найти последний индекс с таким же taskTitle
+    const currentTitle = this.tasks[rowIndex].taskTitle;
+    let lastIdx = rowIndex;
+    for (let i = 0; i < this.tasks.length; i++) {
+        if (this.tasks[i].taskTitle === currentTitle) lastIdx = i;
+    }
+
+    const anchor = this._getMaintPlanningAnchor(this.taskNodes[lastIdx]);
+    anchor.parentNode.insertBefore(taskDef, anchor.nextSibling);
+    this.taskNodes.splice(lastIdx + 1, 0, taskDef);
+    this.tasks.splice(lastIdx + 1, 0, taskObj);
+
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Контекстное меню: создать альтернативную задачу ──────────────────
+addAlternativeTask(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
+    const doc = this.$xml[0];
+    const currentNode = this.taskNodes[rowIndex];
+    const currentTask = this.tasks[rowIndex];
+    const taskIdent = currentNode.getAttribute('taskIdent') || '';
+
+    if (!taskIdent.trim() || taskIdent.startsWith('new-task-')) {
+        alert('Нельзя создать альтернативную задачу: сначала заполните номер задачи (taskIdent).');
+        return;
+    }
+
+    const newTaskDef = this._createMinimalTaskDef(doc, currentTask.taskTitle);
+    if (taskIdent) newTaskDef.setAttribute('taskIdent', taskIdent);
+
+    const newTaskObj = this._createMinimalTaskObj(currentTask.taskTitle);
+    newTaskObj.isAlternative = true;
+    newTaskObj.taskIdent = taskIdent;
+
+    let altContainer;
+
+    if (currentNode.parentNode && currentNode.parentNode.nodeName === 'taskDefinitionAlts') {
+        // Уже в группе — добавляем в конец того же контейнера
+        altContainer = currentNode.parentNode;
+        altContainer.appendChild(newTaskDef);
+    } else {
+        // Оборачиваем текущую задачу в taskDefinitionAlts — используем нативный DOM
+        altContainer = doc.createElement('taskDefinitionAlts');
+        currentNode.parentNode.insertBefore(altContainer, currentNode);
+        currentNode.parentNode.removeChild(currentNode);
+        altContainer.appendChild(currentNode);
+        altContainer.appendChild(newTaskDef);
+        // Помечаем текущую задачу тоже как альтернативную
+        currentTask.isAlternative = true;
+    }
+
+    const lastIdx = this._getGroupLastIndex(rowIndex);
+    this.taskNodes.splice(lastIdx + 1, 0, newTaskDef);
+    this.tasks.splice(lastIdx + 1, 0, newTaskObj);
+
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Хелперы ──────────────────────────────────────────────────────────
+_getMaintPlanningAnchor(node) {
+    // Если нода внутри taskDefinitionAlts — возвращаем сам контейнер
+    if (node.parentNode && node.parentNode.nodeName === 'taskDefinitionAlts') {
+        return node.parentNode;
+    }
+    return node;
+}
+
+_getGroupLastIndex(rowIndex) {
+    const node = this.taskNodes[rowIndex];
+    if (!node.parentNode || node.parentNode.nodeName !== 'taskDefinitionAlts') return rowIndex;
+    const parent = node.parentNode;
+    let last = rowIndex;
+    for (let i = rowIndex + 1; i < this.taskNodes.length; i++) {
+        if (this.taskNodes[i].parentNode === parent) last = i;
+        else break;
+    }
+    return last;
+}
+
+_getGroupFirstIndex(rowIndex) {
+    const node = this.taskNodes[rowIndex];
+    if (!node.parentNode || node.parentNode.nodeName !== 'taskDefinitionAlts') return rowIndex;
+    const parent = node.parentNode;
+    let first = rowIndex;
+    for (let i = rowIndex - 1; i >= 0; i--) {
+        if (this.taskNodes[i].parentNode === parent) first = i;
+        else break;
+    }
+    return first;
+}
+
+_createMinimalTaskDef(doc, taskTitle) {
+    const taskDef = doc.createElement('taskDefinition');
+    taskDef.setAttribute('taskIdent', 'new-task-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
+
+    const task = doc.createElement('task');
+    const titleNode = doc.createElement('taskTitle');
+    titleNode.textContent = taskTitle;
+    task.appendChild(titleNode);
+    taskDef.appendChild(task);
+
+    const prelim = doc.createElement('preliminaryRqmts');
+    const rcg = doc.createElement('reqCondGroup');
+    const rcnr = doc.createElement('reqCondNoRef');
+    rcnr.appendChild(doc.createElement('reqCond'));
+    rcg.appendChild(rcnr);
+    prelim.appendChild(rcg);
+    [['reqSupportEquips', 'noSupportEquips'], ['reqSupplies', 'noSupplies'],
+     ['reqSpares', 'noSpares'], ['reqSafety', 'noSafety']].forEach(([p, c]) => {
+        const el = doc.createElement(p);
+        el.appendChild(doc.createElement(c));
+        prelim.appendChild(el);
+    });
+    taskDef.appendChild(prelim);
+    return taskDef;
+}
+
+_createMinimalTaskObj(taskTitle) {
+    const obj = {
+        fieldApplicabilities: {},
+        taskTitle,
+        personnel: [],
+        remarks: '',
+        rqmtSources: [],
+        limits: [],
+        workAreaLocationGroups: [],
+        taskDurations: [],
+        dmRefs: [],
+        changeType: '',
+        isAlternative: false
+    };
+    this.headers.forEach(h => { if (!(h.key in obj)) obj[h.key] = ''; });
+    return obj;
+}
+
+// ─── Переместить раздел вверх ──────────────────────────────────────────
+moveSectionUp(taskTitle) {
+    const sections = this._getSectionOrder();
+    const idx = sections.findIndex(s => s.title === taskTitle);
+    if (idx <= 0) return; // уже первый
+
+    this._swapSections(sections[idx - 1], sections[idx]);
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Переместить раздел вниз ───────────────────────────────────────────
+moveSectionDown(taskTitle) {
+    const sections = this._getSectionOrder();
+    const idx = sections.findIndex(s => s.title === taskTitle);
+    if (idx === -1 || idx >= sections.length - 1) return; // уже последний
+
+    this._swapSections(sections[idx], sections[idx + 1]);
+    this.changeListeners.forEach(fn => fn(this.getXML()));
+}
+
+// ─── Получить список разделов в порядке документа ─────────────────────
+_getSectionOrder() {
+    const sections = [];
+    let currentTitle = null;
+
+    this.tasks.forEach((task, i) => {
+        if (task.taskTitle !== currentTitle) {
+            currentTitle = task.taskTitle;
+            sections.push({ title: currentTitle, indices: [i] });
+        } else {
+            sections[sections.length - 1].indices.push(i);
+        }
+    });
+
+    return sections;
+}
+
+insertTaskBefore(rowIndex) {
+    this.addTaskAbove(rowIndex);
+}
+
+insertTaskAfter(rowIndex) {
+    this.addTaskBelow(rowIndex);
+}
+
+// ─── Поменять два соседних раздела местами (A идёт до B) ──────────────
+_swapSections(sectionA, sectionB) {
+    const maintPlanning = this.$xml.find('maintPlanning')[0];
+
+    // Уникальные DOM-якоря верхнего уровня для каждого раздела
+    const getAnchors = (section) =>
+        [...new Set(section.indices.map(i => this._getMaintPlanningAnchor(this.taskNodes[i])))];
+
+    const aAnchors = getAnchors(sectionA);
+    const bAnchors = getAnchors(sectionB);
+
+    // Вставляем все узлы B перед первым узлом A — A автоматически окажется после B
+    const firstA = aAnchors[0];
+    bAnchors.forEach(node => maintPlanning.insertBefore(node, firstA));
+
+    // Переставляем в массивах: вместо [A..., B...] делаем [B..., A...]
+    const startIdx = sectionA.indices[0];
+    const totalLen = sectionA.indices.length + sectionB.indices.length;
+
+    const aNodes = sectionA.indices.map(i => this.taskNodes[i]);
+    const aTasks = sectionA.indices.map(i => this.tasks[i]);
+    const bNodes = sectionB.indices.map(i => this.taskNodes[i]);
+    const bTasks = sectionB.indices.map(i => this.tasks[i]);
+
+    this.taskNodes.splice(startIdx, totalLen, ...bNodes, ...aNodes);
+    this.tasks.splice(startIdx, totalLen, ...bTasks, ...aTasks);
+}
 
 
     /* ZONE END */

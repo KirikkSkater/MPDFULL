@@ -1,0 +1,86 @@
+
+/* ── Альтернативные задачи ── */
+tr.row-alternative > td {
+    background-color: #e8f5e9 !important;
+}
+/* tr.row-alternative:hover > td {
+    background-color: #d4edda !important;
+} */
+
+/* ── Контекстное меню ── */
+.task-context-menu {
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    min-width: 230px;
+    padding: 4px 0;
+    user-select: none;
+    z-index: 9999;
+}
+.menu-option {
+    padding: 7px 16px;
+    font-size: 13px;
+    color: #222;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+}
+.menu-option:hover { background: #eef2ff; color: #1a4dd8; }
+.menu-option-create { color: #1a6b2a; }
+.menu-option-create:hover { background: #e8f5e9; color: #1a6b2a; }
+.menu-option-danger { color: #c0392b; }
+.menu-option-danger:hover { background: #fff0f0; }
+.menu-divider { height: 1px; background: #e8e8e8; margin: 4px 0; }
+
+
+.ctx-menu {
+    position: fixed;
+    z-index: 9999;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    min-width: 220px;
+    user-select: none;
+}
+
+.ctx-item {
+    padding: 7px 16px;
+    font-size: 13px;
+    color: #222;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ctx-item:hover {
+    background: #eef2ff;
+    color: #1a4dd8;
+}
+
+.ctx-danger { color: #c0392b; }
+.ctx-danger:hover { background: #fff0f0; color: #c0392b; }
+
+.ctx-sep {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 4px 0;
+}
+
+/* ── Альтернативные задачи — бледно-зелёный ── */
+tr.row-alternative > td {
+    background-color: #e8f5e9 !important;
+}
+
+.menu-option-disabled {
+    color: #aaa;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* tr.row-alternative:hover > td {
+    background-color: #d4edda !important;
+} */

@@ -244,6 +244,25 @@ class ScheduleView {
               }
             }
 
+            if (meta.type === 'remarksadded' && meta.payload) {
+              const p = meta.payload;
+              if (p.targetType === 'limit') {
+                  this.forceRenderCell(p.rowIndex, 'limit');
+                  setTimeout(() => this.focusRemarksField(p.rowIndex, p.targetType, p.index), 100);
+              } else if (p.targetType === 'workArea') {
+                  if (this.model.isZoneGroup(p.rowIndex, p.index)) {
+                      this.updateCell(p.rowIndex, 'zoneNumber');
+                  } else {
+                      this.updateCell(p.rowIndex, 'accessPoint');
+                  }
+                  setTimeout(() => this.focusRemarksField(p.rowIndex, p.targetType, p.index), 100);
+              } else if (p.targetType === 'task') {
+                  this.updateTaskDescrRemarks(p.rowIndex);
+                  setTimeout(() => this.focusRemarksField(p.rowIndex, p.targetType, p.index), 100);
+              }
+              return;
+          }
+
             if (meta && meta.type === 'remarks:changed' && meta.payload) {
               const p = meta.payload;
               console.log('Remarks changed event:', p);

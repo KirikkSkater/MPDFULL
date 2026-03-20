@@ -55,6 +55,17 @@ table.disable {
     white-space: pre-wrap;
 }
 
+.editable-text:empty:before {
+  content: attr(data-placeholder);
+  color: #bbb;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.editable-text:focus:before {
+  content: '';
+}
+
 .task-group-subtitle {
   font-weight: bold;
   background: #f0f0f0;

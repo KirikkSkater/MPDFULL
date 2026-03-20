@@ -37,18 +37,35 @@ class AccessPointView extends BaseCellView {
 
     renderContent() {
         const $container = $('<div>').addClass('access-point-container');
-
-        // ИСПРАВЛЕНО: Используем realIndex вместо локального индекса
-        this.accessGroups.forEach((item, localIndex) => {
-            const $groupBlock = this.renderAccessGroupBlock(item.group, item.realIndex);
+    
+        this.accessGroups.forEach(({ group, realIndex }) => {
+            // renderAccessGroupBlock уже создаёт правильный блок
+            const $groupBlock = this.renderAccessGroupBlock(group, realIndex);
+    
+            // Добавляем примечание в конец этого же блока
+            if (group.remarks !== undefined && group.remarks !== null) {
+                // remarks хранится как объект {text: "..."}, а не строка
+                const remarksText = typeof group.remarks === 'object'
+                    ? (group.remarks.text ?? '')
+                    : group.remarks;
+            
+                const $remarksField = this.renderRemarksField(
+                    remarksText,
+                    this.rowIndex,
+                    'workArea',
+                    realIndex
+                );
+                if ($remarksField) $groupBlock.append($remarksField);
+            }
+    
             $container.append($groupBlock);
         });
-
-        if (this.editable) {
+    
+        if (this.shouldShowEditElements()) {
             const $addGroupBtn = this.createAddGroupButton();
             $container.append($addGroupBtn);
         }
-
+    
         return $container;
     }
 

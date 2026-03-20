@@ -1,0 +1,159 @@
+/* ── Один общий блок remarks ── */
+.remarks-multi-block {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-top: 0px;
+    /* overflow: hidden; */
+}
+.remarks-multi-block .remarks-label {
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #888;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* ── Один элемент примечания ── */
+.remarks-item-wrap {
+    position: relative;
+    padding: 3px 28px 3px 8px; /* справа место под кнопку удалить */
+}
+.remarks-item-wrap .remarks-text {
+    min-height: 20px;
+    outline: none;
+    font-size: 10px;
+}
+
+/* ── Кнопка удалить ── */
+.remarks-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    font-size: 13px;
+    line-height: 16px;
+    text-align: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #c0392b;
+    border-color: #c0392b;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+
+.remarks-add-wrap {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.remarks-add-btn {
+    display: block;
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 12px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    border-radius: 0 0 4px 4px;
+    /* Скрыта по умолчанию */
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.remarks-multi-block:hover .remarks-add-btn {
+    opacity: 1;
+}
+
+.remarks-multi-block .remarks-divider-line:last-of-type {
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.remarks-multi-block:hover .remarks-divider-line:last-of-type {
+    opacity: 1;
+}
+
+.remarks-add-btn:hover {
+    color: #1a73e8;
+    background: #f0f6ff;
+}
+
+
+.remarks-remove-btn:hover {
+    color: #fff0f0;
+    border-color: #fff0f0;
+    background: #c0392b;
+}
+
+/* ── Разделитель с кнопкой "+" ── */
+.remarks-item-divider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 8px;
+}
+.remarks-divider-line {
+    flex: 1;
+    border-top: 1px solid #dee2e6;
+}
+.remarks-add-inline-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 16px;
+    padding: 0;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 14px;
+    text-align: center;
+    /* background: #fff; */
+    /* border: 1px solid; */
+    border-radius: 3px;
+    cursor: pointer;
+    color: #007bff;
+    opacity: 0;              /* скрыта по умолчанию */
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+/* Показывается при наведении на весь блок */
+.remarks-multi-block:hover .remarks-add-inline-btn {
+    opacity: 1;
+}
+/* ── Кнопка добавить первое примечание ── */
+.remarks-add-first-btn {
+    display: block;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+.remarks-add-first-btn:hover {
+    color: #1a73e8;
+    background: #f0f6ff;
+}
+
+
+.remarks-text:empty:before {
+    content: attr(data-placeholder);
+    color: #bbb;
+    pointer-events: none;
+    font-style: italic;
+}
+
+/* Убрать placeholder при фокусе */
+.remarks-text:focus:before {
+    content: '';
+}

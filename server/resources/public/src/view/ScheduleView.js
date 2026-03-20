@@ -246,14 +246,28 @@ class ScheduleView {
               }
             }
 
+            if (meta?.type === 'remarksItem:added' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateTaskDescrRemarks(rowIndex);
+              setTimeout(() => this.focusLastRemarksItem(rowIndex), 50);
+              return;
+          }
+          if (meta?.type === 'remarksItem:removed' && meta.payload) {
+              const { rowIndex } = meta.payload;
+              this.updateTaskDescrRemarks(rowIndex);
+              return;
+          }
+
             if (meta && meta.type === 'remarks:changed' && meta.payload) {
               const p = meta.payload;
               console.log('Remarks changed event:', p);
               
               // Обновляем соответствующий элемент с использованием прямых данных
               if (p.target === 'limit') {
-                this.updateLimitInRow(p.rowIndex, p.limitIndex);
-              } else if (p.target === 'workArea') {
+                // БЫЛО: this.updateLimitInRow(p.rowIndex, p.limitIndex);
+                this.forceRenderCell(p.rowIndex, 'limit');
+                return;
+            } else if (p.target === 'workArea') {
                 // Определяем тип группы через модель
                 if (this.model.isZoneGroup(p.rowIndex, p.groupIndex)) {
                     this.updateCell(p.rowIndex, 'zoneNumber'); // TODO: убрать примечания из зоны
@@ -273,8 +287,12 @@ class ScheduleView {
               
               // Немедленно обновляем соответствующий элемент
               if (p.targetType === 'limit') {
-                this.updateLimitInRow(p.rowIndex, p.index);
-              } else if (p.targetType === 'workArea') {
+                // БЫЛО: this.updateLimitInRow(p.rowIndex, p.index);
+                this.forceRenderCell(p.rowIndex, 'limit');
+                setTimeout(() => this.focusRemarksField(p.rowIndex, p.targetType, p.index), 100);
+                return;
+            }
+             else if (p.targetType === 'workArea') {
                 // Определяем тип группы через модель
                 if (this.model.isZoneGroup(p.rowIndex, p.index)) {
                     this.updateCell(p.rowIndex, 'zoneNumber');
@@ -367,6 +385,19 @@ class ScheduleView {
     document.addEventListener('DOMContentLoaded', () => {
         this.updateFromGlobalState();
     });
+}
+
+focusLastRemarksItem(rowIndex) {
+  const fields = $(`tr[data-task-index="${rowIndex}"] .remarks-multi-container .remarks-text`);
+  if (!fields.length) return;
+  const last = fields.last();
+  last.attr('contenteditable', true).focus();
+  const range = document.createRange();
+  const sel   = window.getSelection();
+  range.selectNodeContents(last[0]);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 
@@ -674,7 +705,10 @@ disablePreviewMode() {
                         this.model.addTaskToSection(titleText);
                     })
                 ));
-        
+        $subRow.on('contextmenu', (e) => {
+                  e.preventDefault();
+                  this.showSectionContextMenu(e, task.taskTitle);
+        });
         // Оставляем dragstart
         $subRow.attr('draggable', true)
             .on('dragstart', e => {
@@ -696,12 +730,13 @@ disablePreviewMode() {
             e.preventDefault();
             this.showTaskContextMenu(e, rowIndex, task);
         });
-
+      
+      if (task.isAlternative) $row.addClass('row-alternative');
+      
       headers.forEach((h, colIndex) => {
 
         const $cell = $('<td>', { class: h.editable ? 'editable-cell' : '', 'data-field': h.key });
-
-
+        
         const cellValue = task[h.key] || '';
 
         if (h.key === 'changeType') {
@@ -783,15 +818,17 @@ disablePreviewMode() {
               const newValue = $(e.target).text();
               this.model.updateTaskField(rowIndex, h.key, newValue);
             });
+
+            $descrContent.attr('data-placeholder', 'Введите описание');
           }
           
           $contentContainer.append($descrContent);
         
 
           if (task.remarks != undefined) {
-            const $remarksBlock = this.renderRemarksField(task.remarks, rowIndex, 'task');
+            const $remarksBlock = this.renderTaskRemarksBlocks(task, rowIndex);
             if ($remarksBlock) {
-              $contentContainer.append($remarksBlock);
+                $contentContainer.append($remarksBlock);
             }
           }
           
@@ -906,6 +943,11 @@ disablePreviewMode() {
             const newValue = $(e.target).text();
             this.model.updateTaskField(rowIndex, h.key, newValue);
           });
+
+          if(h.key === "taskIdent"){
+            $content.attr('data-placeholder', 'Введите код задачи');
+          }
+
         }
 
         $cell.append($content);
@@ -1466,6 +1508,88 @@ renderRemarksField(remarks, rowIndex, targetType, targetIndex = null) {
   return $container;
 }
 
+renderTaskRemarksBlocks(task, rowIndex) {
+  const items = task.remarksItems?.length
+      ? task.remarksItems
+      : (task.remarks ? [task.remarks] : []);
+
+  if (!this.editable && items.length === 0) return null;
+
+  const outerBlock = $('<div>').addClass('remarks-block remarks-multi-block');
+  const label = $('<div>').addClass('remarks-label').text('Примечание');
+  outerBlock.append(label);
+
+  const renderItem = (text, itemIndex) => {
+      const wrap = $('<div>').addClass('remarks-item-wrap').attr('data-item-index', itemIndex);
+
+      const textField = $('<div>')
+          .addClass('remarks-text')
+          .text(text)
+          .attr('data-row-index', rowIndex)
+          .attr('data-target-type', 'task')
+          .attr('data-item-index', itemIndex)
+          .attr('data-placeholder', 'Введите примечание');
+
+      if (this.editable) {
+          textField.attr('contenteditable', true);
+          textField.on('blur', () => {
+              this.model.updateTaskRemarksItem(rowIndex, itemIndex, textField.text().trim());
+          });
+          textField.on('keydown', (e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); textField.blur(); }
+          });
+
+          const removeBtn = $('<button>')
+              .addClass('remarks-remove-btn edit-mode-btn')
+              .html('&times;')
+              .attr('title', 'Удалить')
+              .on('click', () => this.model.removeTaskRemarksItem(rowIndex, itemIndex));
+
+          wrap.append(textField, removeBtn);
+      } else {
+          wrap.append(textField);
+      }
+
+      return wrap;
+  };
+
+  if (items.length === 0) {
+      // Нет примечаний — только кнопка добавить
+      if (this.editable) {
+          outerBlock.append(
+              $('<button>')
+                  .addClass('remarks-add-btn edit-mode-btn')
+                  .text('+ Примечание')
+                  .on('click', () => this.model.addTaskRemarksItem(rowIndex))
+          );
+      }
+  } else {
+      // Рендерим элементы с разделителями между ними
+      items.forEach((text, i) => {
+          if (i > 0) {
+              outerBlock.append($('<div>').addClass('remarks-divider-line'));
+          }
+          outerBlock.append(renderItem(text, i));
+      });
+
+      // Кнопка "+" только в конце, внутри того же блока
+      if (true) {
+          outerBlock
+              .append($('<div>').addClass('remarks-divider-line'))
+              .append(
+                  $('<button>')
+                      .addClass('remarks-add-btn edit-mode-btn')
+                      .text('+ Примечание')
+                      .on('click', () => this.model.addTaskRemarksItem(rowIndex))
+              );
+      }
+  }
+
+  return outerBlock;
+}
+
+
+
 
 removeRemarks(rowIndex, targetType, targetIndex = null) {
   // Просто сохраняем пустую строку - это удалит примечание
@@ -1543,213 +1667,207 @@ saveRemarks(rowIndex, targetType, targetIndex, remarks) {
 }
 
 showTaskContextMenu(event, rowIndex, task) {
-  // Определяем тип элемента по тому, на что кликнули
-  const targetElement = $(event.target);
+  $('.task-context-menu').remove();
+
+  const targetElement = event.target;
   let context = this.determineContext(targetElement, rowIndex, task);
+  const menu = $('<div>').addClass('context-menu task-context-menu');
 
-  
-  
-  const $menu = $('<div>').addClass('context-menu task-context-menu');
-  if (context) {
-    const hasRemarks = this.model.hasRemarks(context.type, rowIndex, context.index);
-    const $remarksOption = $('<div>').addClass('menu-option')
-      .append($('<span>').text(hasRemarks ? 'Редактировать примечание' : 'Добавить примечание'))
-      .on('click', () => {
-        if (hasRemarks) {
-          // Фокусируемся на существующем примечании
-          this.focusRemarksField(rowIndex, context.type, context.index);
-        } else {
-          // Добавляем пустое примечание
-          this.model.addRemarksQuick(context.type, rowIndex, context.index);
-        }
-        $menu.remove();
-      });
-    
-    $menu.append($remarksOption);
-  }
-  // Основные пункты меню
-  const $deleteOption = $('<div>').addClass('menu-option')
-    .append($('<span>').text('Удалить задачу'))
-    .on('click', () => {
-      if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
-        this.model.deleteTask(rowIndex);
-      }
-      $menu.remove();
-    });
+  // ─── Создание задач ───────────────────────────────────────────────
+  const addAboveOption = $('<div>').addClass('menu-option menu-option-create')
+      .append($('<span>').text('Создать задачу выше'))
+      .on('click', () => { this.model.addTaskAbove(rowIndex); menu.remove(); });
 
-  const $changeSectionOption = $('<div>').addClass('menu-option')
-    .append($('<span>').text('Изменить раздел'))
-    .on('click', () => {
-      this.changeTaskSection(rowIndex, task);
-      $menu.remove();
-    });
+  const addBelowOption = $('<div>').addClass('menu-option menu-option-create')
+      .append($('<span>').text('Создать задачу ниже'))
+      .on('click', () => { this.model.addTaskBelow(rowIndex); menu.remove(); });
 
-  $menu.append($deleteOption, $changeSectionOption);
+  const addSectionOption = $('<div>').addClass('menu-option menu-option-create')
+      .append($('<span>').text('Создать раздел'))
+      .on('click', () => { this.model.addSectionAfterCurrentGroup(rowIndex); menu.remove(); });
 
-  // Пункт для добавления примечания в текущий контекст
-  if (context) {
-    const hasRemarks = this.model.hasRemarks(context.type, rowIndex, context.index);
-    const $remarksOption = $('<div>').addClass('menu-option')
-      .append($('<span>').text(hasRemarks ? 'Редактировать примечание' : 'Добавить примечание'))
-      .on('click', () => {
-        if (hasRemarks) {
-          this.focusRemarksField(rowIndex, context.type, context.index);
-        } else {
-          this.model.addRemarksQuick(context.type, rowIndex, context.index);
-        }
-        $menu.remove();
-      });
-    
-    $menu.append($remarksOption);
+  const addAltOption = $('<div>').addClass('menu-option menu-option-create')
+      .append($('<span>').text('Создать альтернативную задачу'))
+      .on('click', () => { this.model.addAlternativeTask(rowIndex); menu.remove(); });
+
+  menu.append(addAboveOption, addBelowOption, addSectionOption, addAltOption);
+  menu.append($('<div>').addClass('menu-divider'));
+
+  // Примечание — только для limit, workArea (access), task
+  const remarksAllowed = ['limit', 'workArea', 'task'];
+  if (context && remarksAllowed.includes(context.type)) {
+      const hasRemarks = this.model.hasRemarks(context.type, rowIndex, context.index);
+      const remarksOption = $('<div>').addClass('menu-option')
+          .append($('<span>').text(hasRemarks ? 'Перейти к примечанию' : 'Добавить примечание'))
+          .on('click', () => {
+              if (hasRemarks) {
+                  this.focusRemarksField(rowIndex, context.type, context.index);
+              } else {
+                  this.model.addRemarksQuick(context.type, rowIndex, context.index);
+              }
+              menu.remove();
+          });
+      menu.append(remarksOption);
   }
 
-  // ВЕРНЁМ ПУНКТ ДЛЯ ПРИМЕНИМОСТИ ЗАДАЧИ
-  const $applicOption = $('<div>').addClass('menu-option with-submenu')
-    .append($('<span>').text('Применимость задачи →'));
-
-  // Создаем подменю с применимостями
-  const $submenu = $('<div>').addClass('submenu applicability-submenu');
-  
-  // Добавляем опцию "Без применимости"
-  $submenu.append(
-    $('<div>').addClass('submenu-option')
-      .text('Без применимости')
+  // Удалить задачу и сменить раздел — всегда
+  const deleteOption = $('<div>').addClass('menu-option')
+      .append($('<span>').text('Удалить задачу'))
       .on('click', () => {
-        this.model.updateApplicForTask(rowIndex, null);
-        $menu.remove();
-      })
+          if (confirm('Удалить задачу?')) this.model.deleteTask(rowIndex);
+          menu.remove();
+      });
+
+  const changeSectionOption = $('<div>').addClass('menu-option')
+      .append($('<span>').text('Сменить раздел'))
+      .on('click', () => {
+          this.changeTaskSection(rowIndex, task);
+          menu.remove();
+      });
+
+  menu.append(deleteOption, changeSectionOption);
+
+  // Применимость
+  const applicOption = $('<div>').addClass('menu-option with-submenu')
+      .append($('<span>').text('Применимость'));
+  const submenu = $('<div>').addClass('submenu applicability-submenu');
+  submenu.append(
+      $('<div>').addClass('submenu-option').text('Без применимости')
+          .on('click', () => { this.model.updateApplicForTask(rowIndex, null); menu.remove(); })
   );
-  
-  // Добавляем разделитель
-  $submenu.append($('<div>').addClass('submenu-divider'));
-  
-  // Добавляем все доступные применимости
-  Object.values(this.model.applicMap).forEach(applic => {
-    $submenu.append(
-      $('<div>').addClass('submenu-option')
-        .text(applic.displayValue || applic.id)
-        .on('click', () => {
-          this.model.updateApplicForTask(rowIndex, applic.id);
-          $menu.remove();
-        })
+  submenu.append($('<div>').addClass('submenu-divider'));
+  Object.values(this.model.applicManager.applicMap).forEach(applic => {
+    submenu.append(
+        $('<div>').addClass('submenu-option')
+            .text(applic.displayValue || applic.id)
+            .on('click', () => { this.model.updateApplicForTask(rowIndex, applic.id); menu.remove(); })
     );
-  });
-  
-  $menu.append($applicOption, $submenu);
+});
+  menu.append(applicOption, submenu);
+  applicOption.on('mouseenter', () => submenu.css({ top: applicOption.position().top, left: applicOption.outerWidth() }).show());
+  applicOption.on('mouseleave', () => setTimeout(() => { if (!submenu.is(':hover')) submenu.hide(); }, 100));
+  submenu.on('mouseleave', () => submenu.hide());
 
-  // Показываем подменю при наведении
-  $applicOption.on('mouseenter', () => {
-    $submenu.css({
-      top: $applicOption.position().top,
-      left: $applicOption.outerWidth()
-    }).show();
-  });
-  
-  $applicOption.on('mouseleave', () => {
-    setTimeout(() => {
-      if (!$submenu.is(':hover')) {
-        $submenu.hide();
+  menu.css({ position: 'absolute', top: event.pageY, left: event.pageX, zIndex: 1000 });
+  $('body').append(menu);
+
+  $(document).on('mousedown.ctxmenu', e => {
+      if (!menu.is(e.target) && menu.has(e.target).length === 0) {
+          menu.remove();
+          $(document).off('mousedown.ctxmenu keydown.ctxmenu');
       }
-    }, 100);
   });
-  
-  $submenu.on('mouseleave', () => {
-    $submenu.hide();
-  });
-
-  // Позиционируем меню
-  $menu.css({
-    position: 'absolute',
-    top: event.pageY,
-    left: event.pageX,
-    zIndex: 1000
-  });
-
-  $('body').append($menu);
-
-  // Закрытие меню
-  $(document).on('mousedown', (e) => {
-    if (!$menu.is(e.target) && $menu.has(e.target).length === 0) {
-      $menu.remove();
-      $(document).off('mousedown');
-    }
-  });
-
-  $(document).on('keydown', (e) => {
-    if (e.key === 'Escape') {
-      $menu.remove();
-      $(document).off('keydown');
-    }
+  $(document).on('keydown.ctxmenu', e => {
+      if (e.key === 'Escape') {
+          menu.remove();
+          $(document).off('mousedown.ctxmenu keydown.ctxmenu');
+      }
   });
 }
+
+
   /**
    * Определяет контекст клика - на каком элементе было вызвано меню
    */
-  determineContext($target, rowIndex, task) {
-    // Проверяем limit блоки
-    const $limitBlock = $target.closest('.limit-block');
-    if ($limitBlock.length) {
-      const limitIndex = $limitBlock.data('limit-index');
-      return { type: 'limit', index: limitIndex };
+  determineContext(target, rowIndex, task) {
+    // Limit-блок
+    const limitBlock = $(target).closest('.limit-block');
+    if (limitBlock.length) {
+        return { type: 'limit', index: parseInt(limitBlock.data('limit-index')) };
     }
 
-    // Проверяем workArea группы
-    const $workAreaGroup = $target.closest('.work-area-group-block');
-    if ($workAreaGroup.length) {
-      const groupIndex = $workAreaGroup.data('group-index');
-      return { type: 'workArea', index: groupIndex };
+    // work-area-group — только access-group, не zone
+    const workAreaGroup = $(target).closest('.work-area-group-block');
+    if (workAreaGroup.length) {
+        const groupIndex = parseInt(workAreaGroup.data('group-index'));
+        if (this.model.isAccessGroup(rowIndex, groupIndex)) {
+            return { type: 'workArea', index: groupIndex };
+        }
+        return { type: 'zoneOnly', index: groupIndex }; // зоны — без примечаний
     }
 
-    // Проверяем ячейку описания задачи
-    const $taskDescrCell = $target.closest('td[data-field="taskDescr"]');
-    if ($taskDescrCell.length) {
-      return { type: 'task', index: null };
+    // Ячейка описания задачи
+    const taskDescrCell = $(target).closest('td[data-field="taskDescr"]');
+    if (taskDescrCell.length) {
+        return { type: 'task', index: null };
     }
 
-    // Если клик был на другой ячейке строки - считаем что это контекст задачи
-    const $taskRow = $target.closest('tr[data-task-index]');
-    if ($taskRow.length) {
-      return { type: 'task', index: null };
-    }
+    // Всё остальное — нет контекста для примечаний
+    return { type: 'rowOnly', index: null };
+}
 
-    return null;
+
+renderTaskRemarksField(remarks, rowIndex) {
+  const $container = $('<div>').addClass('remarks-block');
+
+  const $header = $('<div>').addClass('remarks-header d-flex align-items-center justify-content-between');
+  $header.append($('<div>').addClass('remarks-label').text('Примечание'));
+
+  if (this.editable) {
+      const $deleteBtn = $('<button>')
+          .addClass('btn btn-xs btn-outline-danger btn-remove edit-mode-btn')
+          .html('&times;')
+          .attr('title', 'Удалить примечание')
+          .on('click', () => {
+              this.model.updateTaskRemarks(rowIndex, null);
+              $container.remove();
+          });
+      $header.append($deleteBtn);
   }
 
+  $container.append($header);
 
-  updateTaskDescrRemarks(rowIndex) {
-    const task = this.model.getFilteredTasks()[rowIndex];
-    if (!task) return;
-    
-    // Найти ячейку taskDescr в DOM
-    const table = $('table.schedule-table');
-    const row = table.find(`tbody tr[data-task-index="${rowIndex}"]`);
-    if (!row.length) return;
-    
-    const headers = this.model.getHeaders();
-    const descrColIndex = headers.findIndex(h => h.key === 'taskDescr');
-    if (descrColIndex === -1) return;
-    
-    const cell = row.find('td').eq(descrColIndex);
-    const container = cell.find('.task-description-container');
-    if (!container.length) return;
-    
-    // Удалить старый блок примечаний
-    container.find('.remarks-block').remove();
-    
-    // Добавить новый блок примечаний если есть
-    if (task.remarks !== undefined && task.remarks) {
-        const remarksBlock = this.renderRemarksField(task.remarks, rowIndex, 'task');
-        if (remarksBlock) {
-            // Вставить после editable-text, но перед supervisor-block
-            const supervisorBlock = container.find('.supervisor-block');
-            if (supervisorBlock.length) {
-                supervisorBlock.before(remarksBlock);
-            } else {
-                container.append(remarksBlock);
-            }
-        }
-    }
+  const $textField = $('<div>')
+      .addClass('remarks-text')
+      .text(remarks ?? '')
+      .attr('data-row-index', rowIndex)
+      .attr('data-target-type', 'task')
+      .attr('contenteditable', this.editable);
+
+  if (this.editable) {
+      $textField.on('blur', () => {
+          this.model.updateTaskRemarks(rowIndex, $textField.text().trim());
+      });
+      $textField.on('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              $textField.trigger('blur');
+          } else if (e.key === 'Escape') {
+              $textField.text(remarks ?? '').trigger('blur');
+          }
+      });
+  }
+
+  $container.append($textField);
+  return $container;
 }
+
+
+updateTaskDescrRemarks(rowIndex) {
+  const task = this.model.getFilteredTasks()[rowIndex];
+  if (!task) return;
+
+  const row = $('table.schedule-table tbody').find(`tr[data-task-index="${rowIndex}"]`);
+  if (!row.length) return;
+
+  const container = row.find('td[data-field="taskDescr"] .task-description-container');
+  if (!container.length) return;
+
+  container.find('.remarks-block').remove();
+
+  // БЫЛО: this.renderTaskRemarksField(task.remarks, rowIndex)
+  // СТАЛО: используем правильный метод
+  const remarksBlock = this.renderTaskRemarksBlocks(task, rowIndex);
+  if (remarksBlock) {
+      const supervisorBlock = container.find('.supervisor-block');
+      if (supervisorBlock.length) {
+          supervisorBlock.before(remarksBlock);
+      } else {
+          container.append(remarksBlock);
+      }
+  }
+}
+
   /**
    * Фокусируется на поле примечания
    */
@@ -1991,6 +2109,58 @@ updateView(isEditMode) {
   this.render();
   this.setEditable(isEditMode);
 }
+
+showSectionContextMenu(event, taskTitle) {
+  $('.task-context-menu').remove();
+
+  const sections = this.model._getSectionOrder();
+  const idx = sections.findIndex(s => s.title === taskTitle);
+  const isFirst = idx <= 0;
+  const isLast  = idx >= sections.length - 1;
+
+  const menu = $('<div>').addClass('context-menu task-context-menu');
+
+  const moveUpOption = $('<div>')
+      .addClass('menu-option' + (isFirst ? ' menu-option-disabled' : ''))
+      .append($('<span>').text('⬆ Переместить вверх'))
+      .on('click', () => {
+          if (!isFirst) this.model.moveSectionUp(taskTitle);
+          menu.remove();
+      });
+
+  const moveDownOption = $('<div>')
+      .addClass('menu-option' + (isLast ? ' menu-option-disabled' : ''))
+      .append($('<span>').text('⬇ Переместить вниз'))
+      .on('click', () => {
+          if (!isLast) this.model.moveSectionDown(taskTitle);
+          menu.remove();
+      });
+
+  menu.append(moveUpOption, moveDownOption);
+
+  menu.css({ position: 'fixed', top: event.clientY, left: event.clientX, zIndex: 1000 });
+  $('body').append(menu);
+
+  // Коррекция выхода за края экрана
+  const r = menu[0].getBoundingClientRect();
+  if (r.right  > window.innerWidth)  menu.css('left', event.clientX - r.width);
+  if (r.bottom > window.innerHeight) menu.css('top',  event.clientY - r.height);
+
+  $(document)
+      .on('mousedown.ctxmenu', (e) => {
+          if (!menu.is(e.target) && menu.has(e.target).length === 0) {
+              menu.remove();
+              $(document).off('mousedown.ctxmenu keydown.ctxmenu');
+          }
+      })
+      .on('keydown.ctxmenu', (e) => {
+          if (e.key === 'Escape') {
+              menu.remove();
+              $(document).off('mousedown.ctxmenu keydown.ctxmenu');
+          }
+      });
+}
+
 
 // Добавляем метод для ручной очистки (может вызываться извне):
 destroy() {

@@ -46,7 +46,7 @@ class HandlerTeamcenter {
   async getDicts(uid) {
     if (!uid) throw new Error('UID is required');
   
-    const url = `http://10.16.6.3:9090/getdataset?uid=${encodeURIComponent(uid)}`;
+    const url = `http://localhost:9090/getdataset?uid=${encodeURIComponent(uid)}`;
     const res = await fetch(url, {
       method: 'GET',
       ...this.defaultFetchOpts,

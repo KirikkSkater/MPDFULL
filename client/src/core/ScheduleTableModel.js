@@ -3061,56 +3061,42 @@ removeApplicForTaskDuration(rowIndex, durationIndex) {
         });
       }
 
-      updateWorkAreaRemarks(rowIndex, groupIndex, remarks) {
-        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
-        if (!this.tasks[rowIndex].workAreaLocationGroups || groupIndex < 0 || 
-            groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return;
-      
+      updateWorkAreaRemarks(rowIndex, groupIndex, text) {
+        if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return false;
+        if (!this.tasks[rowIndex].workAreaLocationGroups ||
+            groupIndex < 0 ||
+            groupIndex >= this.tasks[rowIndex].workAreaLocationGroups.length) return false;
+    
         const taskNode = this.taskNodes[rowIndex];
         const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
         const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-        
-        if (groupIndex >= groups.length) return;
-      
+        if (groupIndex >= groups.length) return false;
+    
+        const doc = taskNode.ownerDocument;
         const group = groups[groupIndex];
-        
-        // Находим или создаем workLocation
+    
+        // Обновляем XML
         let workLocation = group.getElementsByTagName('workLocation')[0];
         if (!workLocation) {
-          workLocation = taskNode.ownerDocument.createElement('workLocation');
-          // Вставляем workLocation ПЕРВЫМ в группу
-          if (group.firstChild) {
-            group.insertBefore(workLocation, group.firstChild);
-          } else {
+            workLocation = doc.createElement('workLocation');
             group.appendChild(workLocation);
-          }
         }
-        
-        // Находим или создаем workArea
         let workArea = workLocation.getElementsByTagName('workArea')[0];
         if (!workArea) {
-          workArea = taskNode.ownerDocument.createElement('workArea');
-          // Вставляем workArea ПЕРВЫМ в workLocation
-          if (workLocation.firstChild) {
-            workLocation.insertBefore(workArea, workLocation.firstChild);
-          } else {
+            workArea = doc.createElement('workArea');
             workLocation.appendChild(workArea);
-          }
         }
-        
-        workArea.textContent = remarks;
-      
-        // Обновляем модель данных
+        workArea.textContent = text;
+    
+        // ↓ ОБЯЗАТЕЛЬНО: обновляем JS-модель тоже
         if (!this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks) {
-          this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks = {};
+            this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks = {};
         }
-        this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks.text = remarks;
-      
-        this._emitChange({
-          type: 'remarks:changed',
-          payload: { rowIndex, groupIndex, target: 'workArea', remarks }
-        });
-      }
+        this.tasks[rowIndex].workAreaLocationGroups[groupIndex].remarks.text = text;
+    
+        return true;
+    }
+    
 
       updateTaskRemarks(rowIndex, remarks) {
         if (rowIndex < 0 || rowIndex >= this.taskNodes.length) return;
