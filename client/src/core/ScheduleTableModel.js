@@ -2807,6 +2807,13 @@ addTaskDuration(rowIndex) {
     const taskDuration = doc.createElement('taskDuration');
     taskDuration.setAttribute('procedureDuration', newDuration.procedureDuration);
     taskDuration.setAttribute('startupDuration', newDuration.startupDuration);
+
+
+    taskDuration.setAttribute('closeupDuration', "-");
+    taskDuration.setAttribute('procedureDuration', "0");
+    taskDuration.setAttribute('unitOfMeasure', "ч.ч.");
+
+
     taskDurationPmd.appendChild(taskDuration);
 
     // Находим все productionMaintData элементы
