@@ -96,34 +96,51 @@ class TaskDurationView extends BaseCellView {
         fields.forEach(field => {
             const $row = $('<div>').addClass('task-duration-row');
             $row.append($('<div>').addClass('task-duration-label').text(field.label));
-
-            // Используем кешированное значение или значение из модели
+        
             const cacheKey = `${index}-${field.key}`;
             const cachedValue = this.cachedInputValues[cacheKey];
             const displayValue = cachedValue !== undefined ? cachedValue : duration[field.key];
-
+        
             const $input = $('<input type="text">')
                 .addClass('task-duration-input')
                 .val(displayValue)
                 .attr('data-duration-index', index)
                 .attr('data-field-key', field.key)
                 .on('input', e => {
-                    // Сохраняем в кеш при вводе
+                    const raw = e.target.value;
+        
+                    // Разрешаем: цифры, одну точку или запятую, максимум 2 знака после
+                    const normalized = raw.replace(',', '.');
+                    const valid = /^-?\d*\.?\d{0,2}$/.test(normalized);
+        
+                    if (!valid) {
+                        // Откатываем до последнего корректного значения из кеша
+                        const durationIndex = $(e.target).data('duration-index');
+                        const fieldKey = $(e.target).data('field-key');
+                        const key = `${durationIndex}-${fieldKey}`;
+                        e.target.value = this.cachedInputValues[key] ?? duration[field.key] ?? '';
+                        return;
+                    }
+        
                     const durationIndex = $(e.target).data('duration-index');
                     const fieldKey = $(e.target).data('field-key');
-                    const cacheKey = `${durationIndex}-${fieldKey}`;
-                    this.cachedInputValues[cacheKey] = e.target.value;
+                    const key = `${durationIndex}-${fieldKey}`;
+                    this.cachedInputValues[key] = raw;
                 })
                 .on('blur', e => {
                     const durationIndex = $(e.target).data('duration-index');
                     const fieldKey = $(e.target).data('field-key');
-                    this.model.updateTaskDurationField(this.rowIndex, durationIndex, fieldKey, e.target.value);
-                    
-                    // Очищаем кеш после сохранения
-                    const cacheKey = `${durationIndex}-${fieldKey}`;
-                    delete this.cachedInputValues[cacheKey];
+        
+                    // Нормализуем запятую в точку перед сохранением
+                    const value = e.target.value.replace(',', '.');
+                    e.target.value = value;
+        
+                    this.model.updateTaskDurationField(this.rowIndex, durationIndex, fieldKey, value);
+        
+                    const key = `${durationIndex}-${fieldKey}`;
+                    delete this.cachedInputValues[key];
                 });
-
+        
             $row.append($input);
             $block.append($row);
         });
