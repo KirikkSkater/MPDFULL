@@ -1,12 +1,12 @@
 const UNITS = [
-    { key: 'th01', label: 'FH'   },
-    { key: 'th02', label: 'FC'  },
-    { key: 'th03', label: 'MO'         },
-    { key: 'th04', label: 'WE'          },
-    { key: 'th05', label: 'YE'          },
-    { key: 'th06', label: 'DY'           },
-    { key: 'th09', label: 'APU_CY'  },
-    { key: 'th10', label: 'APU_HR'  }
+    { key: 'th01', label: 'FH' },
+    { key: 'th02', label: 'FC' },
+    { key: 'th03', label: 'MO' },
+    { key: 'th04', label: 'WE' },
+    { key: 'th05', label: 'YE' },
+    { key: 'th06', label: 'DY' },
+    { key: 'th51', label: 'APU_CY'  },
+    { key: 'th16', label: 'APU_HR'  },
   ];
 
 class LimitView extends BaseCellView {

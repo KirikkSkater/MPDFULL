@@ -7,6 +7,6 @@ const UNITS = [
     { key: 'th04', label: 'WE' },
     { key: 'th05', label: 'YE' },
     { key: 'th06', label: 'DY' },
-    { key: 'th09', label: 'APU_CY'  },
-    { key: 'th10', label: 'APU_HR'  }
+    { key: 'th51', label: 'APU_CY'  },
+    { key: 'th16', label: 'APU_HR'  },
   ];
