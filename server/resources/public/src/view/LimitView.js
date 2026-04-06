@@ -1,14 +1,12 @@
 const UNITS = [
-    { key: 'th01', label: 'th01 - Flight hours'   },
-    { key: 'th02', label: 'th02 - Flight cycles'  },
-    { key: 'th03', label: 'th03 - Months'         },
-    { key: 'th04', label: 'th04 - Weeks'          },
-    { key: 'th05', label: 'th05 - Years'          },
-    { key: 'th06', label: 'th06 - Days'           },
-    { key: 'th08', label: 'th08 - Pressure cycles'},
-    { key: 'th09', label: 'th09 - Engine cycles'  },
-    { key: 'th10', label: 'th10 - Engine change'  },
-    { key: 'th11', label: 'th11 - Shop visits'    }
+    { key: 'th01', label: 'FH'   },
+    { key: 'th02', label: 'FC'  },
+    { key: 'th03', label: 'MO'         },
+    { key: 'th04', label: 'WE'          },
+    { key: 'th05', label: 'YE'          },
+    { key: 'th06', label: 'DY'           },
+    { key: 'th09', label: 'APU_CY'  },
+    { key: 'th10', label: 'APU_HR'  }
   ];
 
 class LimitView extends BaseCellView {
