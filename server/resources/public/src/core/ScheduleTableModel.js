@@ -2814,14 +2814,23 @@ getTaskDurationProductionMaintData(preliminaryRqmts) {
         // Находим или создаем workLocation
         let workLocation = group.getElementsByTagName('workLocation')[0];
         if (!workLocation) {
-          workLocation = taskNode.ownerDocument.createElement('workLocation');
-          // Вставляем workLocation ПЕРВЫМ в группу
-          if (group.firstChild) {
-            group.insertBefore(workLocation, group.firstChild);
-          } else {
-            group.appendChild(workLocation);
+            workLocation = taskNode.ownerDocument.createElement('workLocation');
+          
+            // ищем последний accessPointRef в группе
+            const accessPoints = group.getElementsByTagName('accessPointRef');
+            const lastAccessPoint = accessPoints.length > 0 ? accessPoints[accessPoints.length - 1] : null;
+          
+            if (lastAccessPoint && lastAccessPoint.nextSibling) {
+              // вставляем сразу после последнего accessPointRef
+              group.insertBefore(workLocation, lastAccessPoint.nextSibling);
+            } else if (lastAccessPoint) {
+              // accessPointRef есть, но он последний элемент
+              group.appendChild(workLocation);
+            } else {
+              // accessPointRef нет вообще — просто в конец группы
+              group.appendChild(workLocation);
+            }
           }
-        }
         
         // Находим или создаем workArea
         let workArea = workLocation.getElementsByTagName('workArea')[0];
@@ -3043,7 +3052,6 @@ addAccessPointToGroup(rowIndex, groupIndex) {
     const taskNode = this.taskNodes[rowIndex];
     const workAreaPmd = this.getWorkAreaProductionMaintData(taskNode);
     const groups = workAreaPmd.getElementsByTagName('workAreaLocationGroup');
-    
     if (groupIndex >= groups.length) return;
 
     const group = groups[groupIndex];
@@ -3051,7 +3059,14 @@ addAccessPointToGroup(rowIndex, groupIndex) {
     const accessPointRef = doc.createElement('accessPointRef');
     accessPointRef.setAttribute('accessPointNumber', '');
     // Не добавляем accessPointTypeValue
-    group.appendChild(accessPointRef);
+
+    // ВСТАВЛЯЕМ ДО workLocation, если он есть
+    const workLocation = group.getElementsByTagName('workLocation')[0];
+    if (workLocation) {
+        group.insertBefore(accessPointRef, workLocation);
+    } else {
+        group.appendChild(accessPointRef);
+    }
 
     // Обновляем модель
     this.tasks[rowIndex].workAreaLocationGroups[groupIndex].accessPoints.push({ 
