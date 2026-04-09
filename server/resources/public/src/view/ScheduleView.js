@@ -935,19 +935,48 @@ disablePreviewMode() {
         let $content = $('<div>').addClass('cell-content').text(cellValue);
 
         if (h.editable) {
-          $content = $('<div>', {
-            class: 'editable-text',
-            contenteditable: true,
-            text: cellValue
-          }).on('blur', e => {
-            const newValue = $(e.target).text();
-            this.model.updateTaskField(rowIndex, h.key, newValue);
-          });
-
-          if(h.key === "taskIdent"){
-            $content.attr('data-placeholder', 'Введите код задачи');
+          if (h.key === 'taskIdent') {
+            // Специальный контент для taskIdent
+            $content = $('<div>', {
+              class: 'editable-text',
+              contenteditable: true,
+              text: cellValue
+            })
+              .attr('data-placeholder', 'Введите код задачи')
+              .on('input', e => {
+                const $t = $(e.target);
+                const text = $t.text();
+        
+                // Разрешаем только латинские буквы, цифры, дефис и точку
+                const cleaned = text.replace(/[^A-Za-z0-9.-]/g, '');
+        
+                if (cleaned !== text) {
+                  $t.text(cleaned);
+        
+                  const range = document.createRange();
+                  const sel = window.getSelection();
+                  range.selectNodeContents($t[0]);
+                  range.collapse(false);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+              })
+              .on('blur', e => {
+                const newValue = $(e.target).text();
+                this.model.updateTaskField(rowIndex, h.key, newValue);
+              });
+        
+          } else {
+            // Общий контент для остальных editable полей
+            $content = $('<div>', {
+              class: 'editable-text',
+              contenteditable: true,
+              text: cellValue
+            }).on('blur', e => {
+              const newValue = $(e.target).text();
+              this.model.updateTaskField(rowIndex, h.key, newValue);
+            });
           }
-
         }
 
         $cell.append($content);
